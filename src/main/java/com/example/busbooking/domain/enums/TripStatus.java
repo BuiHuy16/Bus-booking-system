@@ -1,4 +1,8 @@
 package com.example.busbooking.domain.enums;
 
-public class TripStatus {
+public enum TripStatus {
+    SCHEDULED,
+    IN_PROGRESS,
+    COMPLETED,
+    CANCELLED
 }

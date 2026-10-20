@@ -1,4 +1,10 @@
 package com.example.busbooking.api.dto.trip;
 
-public class TripSearchRequest {
+import java.time.LocalDate;
+
+public record TripSearchRequest(
+        Long originId,
+        Long destinationId,
+        LocalDate departureDate
+) {
 }
