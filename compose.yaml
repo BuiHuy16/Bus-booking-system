@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: busbooking-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: busbooking
+      POSTGRES_USER: busbooking_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5435:5432"
+    volumes:
+      - busbooking_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U busbooking -d busbooking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  busbooking_data:
