@@ -1,0 +1,51 @@
+# Local dev only: PostgreSQL + Mailpit, profile dev, JWT/OTP keys in environment.
+# Replace email/password for your own local test; never commit a real token/password.
+@baseUrl = http://localhost:8085
+@email = hoang.demo@example.com
+@password = DemoPassword123!
+@otp = PASTE_SIX_DIGIT_CODE_FROM_MAILPIT
+@token = PASTE_LOGIN_TOKEN_LOCALLY
+
+### 1. Register (201). Read the OTP at http://localhost:8025.
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Nguyễn Văn Huy Hoàng",
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "phone": "0901234567"
+}
+
+### 2. Verify email (204). Keep the code a string to preserve leading zeros.
+POST {{baseUrl}}/api/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "code": "{{otp}}"
+}
+
+### 3. Login (200). Copy token from response to your local client variable.
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### 4. Current account (200).
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Optional: resend (202), only after at least 60 seconds and while unverified.
+POST {{baseUrl}}/api/auth/resend-verification
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Missing JWT (401 JSON).
+GET {{baseUrl}}/api/auth/me

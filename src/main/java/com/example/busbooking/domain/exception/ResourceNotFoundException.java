@@ -1,4 +1,5 @@
 package com.example.busbooking.domain.exception;
 
-public class ResourceNotFoundException {
+public class ResourceNotFoundException extends BusinessException {
+    public ResourceNotFoundException() { super("User not found"); }
 }

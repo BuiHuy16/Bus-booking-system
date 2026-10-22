@@ -1,5 +1,7 @@
 # 5. Thiết kế mã nguồn
 
+**Trạng thái hiện tại:** auth/profile/role/OTP và các adapter đã triển khai; các lớp nghiệp vụ còn lại có thể vẫn là khung. Cấu trúc dự kiến không phải bằng chứng đã có CRUD. Business/domain độc lập framework; wiring ở config. BusBookingApplication loại UserDetailsServiceAutoConfiguration vì API chỉ dùng danh tính từ JWT filter.
+
 ## 5.1. Tổng quan thiết kế mã nguồn
 
 Hệ thống đặt vé xe khách được phát triển bằng Java và Spring Boot theo kiến trúc phân lớp kết hợp với nguyên tắc Ports and Adapters nhằm tách biệt xử lý nghiệp vụ, giao tiếp HTTP và truy cập dữ liệu.
@@ -24,7 +26,7 @@ Thiết kế này hướng đến các mục tiêu:
 
 ## 5.2. Cấu trúc project (dự kiến)
 
-Mã nguồn chính được đặt trong package gốc `com.example.carbooking`.
+Mã nguồn chính được đặt trong package gốc `com.example.busbooking`.
 
 ```text
 
@@ -36,7 +38,7 @@ bus-booking/
 ├── docs/
 │   ├── 01-overview-and-requirements.md
 │   ├── 02-database-design.md
-│   ├── 03-system-architecture.md
+│   ├── 03-system-archiecture.md
 │   ├── 04-api-design.md
 │   ├── 05-source-code-design.md
 │   └── 06-quality-attributes.md
@@ -329,9 +331,9 @@ Các interface này sử dụng domain model hoặc kiểu dữ liệu thuần c
 Ví dụ minh họa:
 
 ```java
-package com.example.carbooking.business.port.repository;
+package com.example.busbooking.business.port.repository;
 
-import com.example.carbooking.domain.model.Trip;
+import com.example.busbooking.domain.model.Trip;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -487,7 +489,7 @@ Package `security` chịu trách nhiệm triển khai cơ chế xác thực và 
 | `SecurityConfig`           | Cấu hình các endpoint công khai, endpoint yêu cầu đăng nhập và endpoint chỉ dành cho ADMIN.          |
 | `JwtAuthenticationFilter`  | Đọc Bearer token từ HTTP request, kiểm tra token và thiết lập thông tin xác thực cho request hợp lệ. |
 | `JwtService`               | Tạo, phân tích và kiểm tra JWT.                                                                      |
-| `CustomUserDetailsService` | Tải thông tin người dùng và vai trò phục vụ Spring Security.                                         |
+| `CurrentUserLoader`       | Tải user theo ID, yêu cầu ACTIVE và emailVerified, tạo principal an toàn.                                         |
 | `PasswordEncoderConfig`    | Cấu hình bộ mã hóa mật khẩu, chẳng hạn BCrypt.                                                       |
 
 Luồng xác thực:
@@ -617,3 +619,13 @@ Các tình huống cần ưu tiên kiểm thử:
 * Người dùng cố gắng xem hoặc hủy đơn đặt vé của người khác.
 * Hủy đơn đặt vé và hoàn lại số ghế đúng một lần.
 * Lỗi database được chuyển thành phản hồi phù hợp, không để lộ thông tin nhạy cảm.
+
+
+### Cập nhật triển khai security phase 2
+
+Lớp rỗng CustomUserDetailsService được thay bằng CurrentUserLoader.loadById; flow JWT không dùng username/password authentication của Spring. AuthenticatedPrincipal chỉ có userId/email/role và implements Principal, không chứa hash hoặc UserEntity. AuthConfig wiring AuthService/JwtService/CurrentUserLoader; JwtProperties được bind ở config và validate secret khi tạo JwtService. Ghi chú này thuộc lịch sử phase 2; ở trạng thái hiện tại phase 3 đã gắn filter vào security chain đúng một lần, không đăng ký servlet filter bean.
+
+
+## Cập nhật auth phase 4
+
+UserController/UserService cung cấp profile; port updateProfile và conditional JPQL chỉ sửa fullName/phone. RoleManagementController/Service và RoleManagementRepositoryAdapter quản lý USER ↔ ADMIN với transaction khóa actor/target và kiểm tra lại eligibility. BootstrapSuperAdminService thuần business, BootstrapSuperAdminProperties và UserConfig ApplicationRunner tạo một super admin dev/test opt-in qua luồng OTP hiện có. Migration V11 bảo đảm tối đa một SUPER_ADMIN. Báo cáo và contract hiện tại: docs/07-auth-guide.md, mục 4.12 docs/04-api-design.md.

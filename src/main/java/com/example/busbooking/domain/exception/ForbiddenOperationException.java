@@ -1,4 +1,5 @@
 package com.example.busbooking.domain.exception;
 
-public class ForbiddenOperationException {
+public class ForbiddenOperationException extends BusinessException {
+    public ForbiddenOperationException() { super("You do not have permission to perform this operation"); }
 }
