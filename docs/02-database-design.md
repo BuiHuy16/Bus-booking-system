@@ -1,5 +1,7 @@
 # 2. Thiết kế Database
 
+**Hiện hành trên nhánh auth:** roles/users/email_verifications qua V9–V11, ba role USER/ADMIN/SUPER_ADMIN. V1–V8 rỗng được giữ để bảo toàn lịch sử. Các bảng nghiệp vụ khác trong ERD là thiết kế, chưa triển khai. Chi tiết auth ở 2.7, 2.8 và cập nhật phase 4; mô tả ngày 1 là lịch sử.
+
 ## 2.1. Tổng quan Database
 
 Hệ thống sử dụng cơ sở dữ liệu quan hệ để lưu trữ và quản lý thông tin người dùng, nhà xe, phương tiện, tuyến đường, chuyến xe và booking.
@@ -40,9 +42,20 @@ erDiagram
         varchar phone
         bigint role_id FK
         varchar status
-        timestamp created_at
-        timestamp updated_at
+        boolean email_verified
+        timestamptz created_at
+        timestamptz updated_at
     }
+
+    EMAIL_VERIFICATIONS {
+        bigint user_id PK,FK
+        varchar code_hash
+        timestamptz expires_at
+        timestamptz sent_at
+        int failed_attempts
+    }
+
+    USERS ||--o| EMAIL_VERIFICATIONS : verifies
 
     BUS_OPERATORS {
         bigint id PK
@@ -589,3 +602,29 @@ Trong Pha 1, hệ thống không thực hiện tối ưu hóa database ở mức
 * Các khóa ngoại thường xuyên được truy vấn.
 * Các trường phục vụ chức năng tìm kiếm chuyến xe.
 * Các trường phục vụ truy vấn booking của người dùng.
+
+
+## 2.7. Quyết định triển khai Role/User ngày 1 (lịch sử, bổ sung ở 2.8/phase 4)
+
+- Migration thực tế là `V9__create_auth_roles_and_users.sql`; V1–V8 giữ nguyên để không thay checksum lịch sử. Chưa triển khai các bảng nghiệp vụ còn lại trên nhánh auth.
+- Role lưu USER/ADMIN, mỗi user có một role qua `role_id`; trạng thái user là ACTIVE/INACTIVE, default tại database là ACTIVE.
+- Email được chuẩn hóa bằng strip/lowercase Locale.ROOT ở adapter/mapper; database yêu cầu `email = lower(btrim(email))`, khác rỗng và unique qua `uk_users_email`. Ghi SQL trực tiếp với email chưa chuẩn hóa bị từ chối.
+- `phone` bắt buộc, tối đa 20 ký tự; `full_name` bắt buộc, tối đa 100 ký tự. Kiểm tra định dạng điện thoại và chính sách mật khẩu nằm ở bước triển khai đăng ký.
+- Cột `password` chứa hash; domain/entity gọi thuộc tính là `passwordHash` để phân biệt với mật khẩu thô. Tầng data không tự hash; AuthService sẽ gọi PasswordHasher ở ngày tiếp theo.
+- Riêng `users.created_at` và `users.updated_at` triển khai bằng `TIMESTAMP WITH TIME ZONE`, ánh xạ `Instant`; dữ liệu biểu diễn một thời điểm tuyệt đối, JDBC dùng UTC. Các mô tả TIMESTAMP của users phía trên được thay bằng quyết định này.
+- PostgreSQL sở hữu timestamp: default khi insert, trigger khi update; trigger bảo toàn created_at và đặt updated_at bằng clock_timestamp(). Entity không ghi hai cột này; adapter refresh sau save để nhận giá trị database.
+- Chưa tạo admin hoặc cấp role qua API. Khi tích hợp nhánh Huy, cần đối chiếu migration/schema và kiểu thời gian của hai nhánh trước khi merge.
+
+
+## 2.8. Bổ sung email verification phase 1
+
+Migration V10 thêm users.email_verified BOOLEAN NOT NULL DEFAULT FALSE; giữ trạng thái ACTIVE/INACTIVE độc lập với xác minh email. Tài khoản tạo trước V10 chưa tự được coi là đã xác minh; có thể yêu cầu gửi mã để tạo challenge đầu tiên.
+
+Bảng email_verifications có user_id (PK/FK, ON DELETE CASCADE), code_hash VARCHAR(64), expires_at/sent_at TIMESTAMPTZ và failed_attempts. HMAC-SHA256 gắn với email + OTP, key tách riêng qua EMAIL_OTP_SECRET. Không lưu OTP thô; verify đúng xóa challenge và cập nhật email_verified trong cùng transaction.
+
+Đăng ký tạo user và challenge nguyên tử. Verify/resend khóa dòng user trước rồi đọc challenge bằng câu lệnh riêng để không sử dụng snapshot cũ sau khi chờ khóa. Lần sai được commit trước khi service phát sinh lỗi; gửi lại thay digest, reset attempts và thời hạn trong transaction. SMTP gửi sau commit, không nằm trong transaction database.
+
+
+## Cập nhật auth phase 4
+
+Migration V11 thêm role SUPER_ADMIN bên cạnh USER/ADMIN và unique partial index uk_users_single_super_admin trên users(role_id), với predicate dùng ID SUPER_ADMIN thực tế đã seed. Tối đa một super admin, kể cả tài khoản inactive. Không seed tài khoản hoặc mật khẩu trong migration. API chỉ cho SUPER_ADMIN nâng/hạ USER ↔ ADMIN; xem docs/07-auth-guide.md.

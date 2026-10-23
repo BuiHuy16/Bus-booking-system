@@ -51,48 +51,37 @@ Tài liệu đặc tả chi tiết được lưu tại thư mục [`docs/`](docs
 
 - [`01-overview-and-requirements.md`](docs/01-overview-and-requirements.md)
 - [`02-database-design.md`](docs/02-database-design.md)
-- [`03-system-architecture.md`](docs/03-system-architecture.md)
+- [`03-system-archiecture.md`](docs/03-system-archiecture.md)
 - [`04-api-design.md`](docs/04-api-design.md)
 - [`05-source-code-design.md`](docs/05-source-code-design.md)
 - [`06-quality-attributes.md`](docs/06-quality-attributes.md)
+- [Auth — Chức năng, API và hướng dẫn sử dụng](docs/07-auth-guide.md)
 
-## 6. Hướng dẫn chạy dự án (tạm thời)
+## 6. Auth đã hoàn thiện
 
-### 6.1. Yêu cầu môi trường
+Phụ trách: **Nguyễn Văn Huy Hoàng**, nhánh `feature/hoang`.
 
-- JDK 21
-- PostgreSQL
-- Maven Wrapper (đã có trong dự án)
+- Đăng ký USER, xác minh OTP email, gửi lại mã và đăng nhập JWT.
+- Đọc/cập nhật profile; số điện thoại Việt Nam chỉ dùng liên hệ.
+- Ba role USER/ADMIN/SUPER_ADMIN; chỉ một super admin và chỉ super được nâng/hạ USER ↔ ADMIN.
+- Security stateless, JSON lỗi thống nhất, rate limit, CORS và Swagger bearerAuth.
 
-### 6.2. Cấu hình cơ sở dữ liệu
+Tài liệu duy nhất cho phần Auth: [07-auth-guide.md](docs/07-auth-guide.md). Tài liệu này thay thế docs 07–19 cũ, có contract API, cấu hình môi trường, bootstrap, demo, lệnh kiểm thử và phần bàn giao cho Huy.
 
-Tạo database PostgreSQL tên `busbooking`, sau đó cấu hình trong file `src/main/resources/application.properties`:
+Yêu cầu JDK 21 đầy đủ, PostgreSQL test riêng và Mailpit khi kiểm thử SMTP thật. Ứng dụng mặc định cổng **8085**; Swagger tại http://localhost:8085/swagger-ui/index.html. `.env.example` chỉ là mẫu, Spring Boot không tự nạp `.env`.
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5433/busbooking
-spring.datasource.username=busbooking_user
-spring.datasource.password=${DB_PASSWORD}
+Sau khi cấu hình biến môi trường theo tài liệu:
+
+```bash
+bash mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Thiết lập biến môi trường `DB_PASSWORD` bằng mật khẩu PostgreSQL của bạn. Điều chỉnh **cổng** và **thông tin đăng nhập** nếu môi trường của bạn khác.
+Kiểm thử mặc định và smoke opt-in:
 
-### 6.3. Chạy dự án
-
-Mở Terminal tại thư mục gốc của dự án và chạy lệnh trên Windows:
-
-```powershell
-.\mvnw.cmd spring-boot:run
+```bash
+bash mvnw -B clean verify
+# Cần thêm Mailpit; chạy tuần tự với các suite dùng cùng database:
+bash mvnw -B '-Dtest=*Test,*Tests,*IT' clean verify
 ```
 
-Hoặc chạy trực tiếp file `BusBookingApplication.java` bằng IntelliJ IDEA.
-
-Flyway sẽ tự động thực thi các migration để tạo bảng khi ứng dụng khởi động.
-
-### 6.4. Truy cập tài liệu API (hiện tại chưa hỗ trợ tài liệu api swagger)
-
-Sau khi ứng dụng khởi động thành công:
-
-- **Swagger UI:** http://localhost:8085/swagger-ui/index.html
-- **OpenAPI JSON:** http://localhost:8085/v3/api-docs
-
-**Lưu ý:** Đây là hướng dẫn chạy tạm thời trong môi trường phát triển cục bộ. Không đưa mật khẩu hoặc thông tin bí mật vào GitHub.
+Nghiệm thu gần nhất: **151 test pass sau sửa review (148 test mặc định + 3 smoke opt-in)**, clean verify và đóng gói JAR thành công. Database sạch V1–V11, Hibernate validate và JAR startup đã được kiểm chứng ở đợt nghiệm thu trước. Auth độc lập hoàn tất; tích hợp Trip/Booking thật và kiểm tra ownership với phần Huy còn chờ. Các request mẫu ở [requests/](requests/).

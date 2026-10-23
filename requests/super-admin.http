@@ -1,0 +1,17 @@
+@baseUrl = http://localhost:8085
+@superAdminToken = REPLACE_WITH_LOCAL_SUPER_ADMIN_JWT
+@userId = 123
+
+### Nâng tài khoản USER ACTIVE đã xác minh email
+PUT {{baseUrl}}/api/admin/users/{{userId}}/role
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{"role":"ADMIN"}
+
+### Thu hồi quyền ADMIN
+PUT {{baseUrl}}/api/admin/users/{{userId}}/role
+Authorization: Bearer {{superAdminToken}}
+Content-Type: application/json
+
+{"role":"USER"}

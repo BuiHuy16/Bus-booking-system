@@ -1,4 +1,5 @@
 package com.example.busbooking.domain.enums;
 
-public class RoleName {
+public enum RoleName {
+    USER, ADMIN, SUPER_ADMIN
 }

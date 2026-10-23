@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:8085
+@token = REPLACE_WITH_LOCAL_JWT
+
+### Xem profile của chính mình
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+
+### Chỉ sửa tên và số điện thoại Việt Nam
+PUT {{baseUrl}}/api/users/me
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"fullName":"Nguyễn Văn Huy Hoàng","phone":"0901234567"}
