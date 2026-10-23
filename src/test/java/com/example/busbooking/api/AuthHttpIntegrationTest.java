@@ -335,6 +335,7 @@ class AuthHttpIntegrationTest {
     static class FixtureController {
         @GetMapping("/api/admin/phase3-check") Map<String, String> admin() { return Map.of("result", "ok"); }
         @PostMapping("/api/admin/post-only") Map<String, String> postOnly() { return Map.of("result", "ok"); }
-        @GetMapping("/api/trips") List<String> trips() { return List.of(); }
+        // GET /api/trips is served by the production TripController (permitAll in SecurityConfig).
+        // POST /api/trips is denied by security's denyAll() rule before MVC dispatch — no fixture needed.
     }
 }

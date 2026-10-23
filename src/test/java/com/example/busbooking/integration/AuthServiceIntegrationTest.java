@@ -232,7 +232,10 @@ class AuthServiceIntegrationTest {
     void accountAndChallengeAreCreatedAtomically() {
         User pending = new User(null, "Hoang", EMAIL, passwords.hash("Password123"), "0901234567",
                 roles.findByName(RoleName.USER).orElseThrow(), UserStatus.ACTIVE, false, null, null);
-        assertThatThrownBy(() -> verificationRepository.createPending(pending, "invalid-hash",
+        // A hash longer than VARCHAR(64) violates the column constraint, triggering a DataIntegrityViolationException.
+        // The @Transactional boundary on createPending() must roll back the user INSERT atomically.
+        String tooLongHash = "x".repeat(65);
+        assertThatThrownBy(() -> verificationRepository.createPending(pending, tooLongHash,
                 clock.instant(), clock.instant().plusSeconds(600)))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(users.findByEmail(EMAIL)).isEmpty();
