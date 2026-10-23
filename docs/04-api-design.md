@@ -1,6 +1,6 @@
 # 4. Thiết kế API
 
-**Trạng thái hiện tại:** 5 endpoint auth, GET/PUT profile và PUT role đã triển khai. Contract auth/lỗi ở 4.11, profile/role ở 4.12; ví dụ đầu tài liệu đã cập nhật. Trip/Booking và các CRUD quản trị khác là thiết kế dự kiến, chưa có controller nghiệp vụ trên nhánh auth. Mục 4.9–4.10 ghi lịch sử, không mô tả trạng thái hiện tại. Base URL local: http://localhost:8085/api.
+**Trạng thái hiện tại:** 5 endpoint auth, GET/PUT profile và PUT role đã triển khai. Contract auth/lỗi ở 4.11, profile/role ở 4.12; ví dụ đầu tài liệu đã cập nhật. Trip/Booking và các CRUD quản trị khác là thiết kế dự kiến, chưa có controller nghiệp vụ trên nhánh auth. Mục 4.9–4.10 ghi lịch sử, không mô tả trạng thái hiện tại. Base URL local: http\://localhost:8085/api.
 
 ## 4.1. API Conventions
 
@@ -36,7 +36,6 @@ Response thành công:
 Content-Type: application/json
 ```
 
-
 ### 4.1.3. Authentication Header
 
 Các API yêu cầu đăng nhập sử dụng:
@@ -45,7 +44,7 @@ Các API yêu cầu đăng nhập sử dụng:
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-Các API công khai như đăng ký, đăng nhập và tìm kiếm chuyến xe không bắt buộc token.
+Các API công khai như đăng ký, xác minh email qua OTP, yêu cầu gửi lại mã OTP, đăng nhập và tìm kiếm chuyến xe không bắt buộc token. Đối với các endpoint auth công khai, Bearer token không hợp lệ nếu được gửi kèm vẫn bị từ chối theo quy tắc Security hiện tại.
 
 ---
 
@@ -57,7 +56,7 @@ Các API công khai như đăng ký, đăng nhập và tìm kiếm chuyến xe k
 POST /api/auth/register
 ```
 
-Đăng ký USER/ACTIVE/emailVerified=false và gửi OTP email; không cấp JWT. Xác minh email trước khi login (4.11).
+Đăng ký USER/ACTIVE/emailVerified=false và gửi OTP đến email đã đăng ký; không cấp JWT. Người dùng phải xác minh email qua `POST /api/auth/verify-email` trước khi đăng nhập; nếu cần, có thể yêu cầu gửi lại OTP qua `POST /api/auth/resend-verification` (xem mục 4.2.4–4.2.5 và contract 4.11).
 
 Request:
 
@@ -140,6 +139,61 @@ Response:
   "emailVerified": true
 }
 ```
+
+### 4.2.4. Verify Email (Xác minh email bằng OTP)
+
+```http
+POST /api/auth/verify-email
+```
+
+**Authentication:** Not required (Public).
+
+Xác minh địa chỉ email sau khi đăng ký bằng mã OTP gồm **6 chữ số**, được gửi qua SMTP. Giá trị `code` phải là **chuỗi**, không phải số nguyên, để giữ số `0` ở đầu nếu có.
+
+Request:
+
+```json
+{
+  "email": "a@example.com",
+  "code": "012345"
+}
+```
+
+Response thành công: **`204 No Content`**, không có response body và **không tự cấp JWT**. Sau khi xác minh thành công, `users.email_verified` chuyển thành `true`; challenge OTP đã dùng bị xóa, người dùng có thể đăng nhập bằng API Login ở mục 4.2.2.
+
+Quy tắc nghiệp vụ:
+
+- OTP có hiệu lực **10 phút**, chỉ dùng **một lần**.
+- Tối đa **5 lần nhập sai cho mỗi mã**.
+- Mã sai, hết hạn, đã dùng hoặc vượt giới hạn lần thử được xử lý thống nhất bằng `400 INVALID_VERIFICATION_CODE`.
+- Hệ thống không trả OTP hoặc hash OTP trong response; database chỉ lưu HMAC digest của OTP.
+
+### 4.2.5. Resend Email Verification (Gửi lại mã OTP)
+
+```http
+POST /api/auth/resend-verification
+```
+
+**Authentication:** Not required (Public).
+
+Gửi lại mã xác minh tới email đăng ký khi người dùng chưa nhận được OTP, OTP hết hạn hoặc thao tác đăng ký đã hoàn tất nhưng gửi email ban đầu thất bại.
+
+Request:
+
+```json
+{
+  "email": "a@example.com"
+}
+```
+
+Response thành công: **`202 Accepted`**, trả thông báo chung để hạn chế tiết lộ email có tồn tại trong hệ thống hay không. Tài khoản không tồn tại, đã xác minh hoặc `INACTIVE` không được gửi OTP mới.
+
+Quy tắc nghiệp vụ:
+
+- Mỗi tài khoản phải chờ ít nhất **60 giây** giữa các lần gửi mã hợp lệ.
+- Gửi lại thành công tạo mã mới, vô hiệu hóa mã cũ, đặt lại thời hạn và số lần nhập sai.
+- Request bị giới hạn tần suất có thể trả `429 RATE_LIMITED`; khi dịch vụ gửi email không khả dụng có thể trả `503 EMAIL_DELIVERY_UNAVAILABLE`.
+- OTP chỉ được gửi qua SMTP, không trả trong JSON response.
 
 ---
 
@@ -657,6 +711,20 @@ Ví dụ khi số ghế không đủ:
 
 ### 4.8.1. Authentication Flow
 
+Trước lần đăng nhập đầu tiên, người dùng đăng ký tài khoản và thực hiện bước xác thực email bằng OTP:
+
+```text
+POST /api/auth/register
+  -> Nhận OTP qua email
+  -> POST /api/auth/verify-email
+  -> users.email_verified = true
+  -> POST /api/auth/login
+```
+
+Nếu chưa nhận được mã, người dùng gọi `POST /api/auth/resend-verification` rồi xác minh bằng mã mới. OTP không thay thế JWT: chỉ sau khi đăng nhập thành công, client mới nhận JWT.
+
+Luồng đăng nhập và cấp JWT:
+
 ```text
 Client
   │
@@ -756,7 +824,6 @@ USER A
   │
   └── Booking 10 thuộc USER A
        └── Allow
-
 USER B
   │
   ├── GET /api/bookings/10
@@ -765,13 +832,15 @@ USER B
        └── Deny
 ```
 
-Việc kiểm tra ownership được thực hiện trong **Business Layer**, vì đây là business rule của hệ thống.
+Việc kiểm tra ownership được thực hiện trong ****Business Layer****, vì đây là business rule của hệ thống.
 
 ### 4.8.5. Public and Protected APIs
 
 | API                          | Authentication | Role       |
 | ---------------------------- | -------------- | ---------- |
 | `POST /api/auth/register`    | Không          | Public     |
+| `POST /api/auth/verify-email` | Không | Public |
+| `POST /api/auth/resend-verification` | Không | Public |
 | `POST /api/auth/login`       | Không          | Public     |
 | `GET /api/trips`             | Không          | Public     |
 | `GET /api/trips/{id}`        | Không          | Public     |
@@ -787,16 +856,20 @@ Việc kiểm tra ownership được thực hiện trong **Business Layer**, vì
 
 Authentication và authorization được xử lý bởi SecurityConfig/JwtAuthenticationFilter; ownership thuộc business.
 
-
 ## 4.9. Hợp đồng auth cập nhật sau phase 1
 
 **Lịch sử phase 1:** các quy tắc dưới đây đã có ở service/data/SMTP và được kiểm thử; AuthController, JWT thật và SecurityConfig chưa triển khai. Không coi các endpoint trong tài liệu là đã hoạt động ở phase 1.
 
 - Email dùng để đăng nhập; strip/lowercase Locale.ROOT, tối đa 100 ký tự, định dạng ASCII email có domain; không OTP qua số điện thoại.
+
 - Password đăng ký tối thiểu 8 ký tự Unicode, tối đa 72 byte UTF-8, không toàn khoảng trắng; không trim/lowercase. Login không áp lại giới hạn tối thiểu đăng ký. BCrypt cost 10.
+
 - Phone nhận dạng nội địa: mobile 10 số bắt đầu 03/05/07/08/09 hoặc cố định 11 số bắt đầu 02; chấp nhận +84 thay 0 đầu và chuẩn hóa về 0; không nhận dấu phân cách bên trong. Đây là kiểm tra định dạng, không chứng minh quyền sở hữu số.
+
 - Register không nhận id/role/status/emailVerified; tạo USER/ACTIVE với emailVerified=false, gửi OTP qua SMTP sau commit. Response dự kiến thêm emailVerified=false vào thông tin user, không trả OTP/hash/token.
+
 - Login chỉ cho phép ACTIVE và emailVerified=true; email không tồn tại, sai password, INACTIVE hoặc chưa xác minh đều dùng thông báo chung Invalid email or password.
+
 - OTP 6 chữ số, có hiệu lực 10 phút, chỉ dùng một lần, tối đa 5 lần nhập sai cho mỗi mã. Gửi lại cách ít nhất 60 giây, thay mã cũ và reset attempts. Tài khoản không tồn tại/đã xác minh/INACTIVE không nhận email gửi lại.
 
 Endpoint sẽ bổ sung ở phase 3:
@@ -810,7 +883,6 @@ Mapping lỗi dự kiến: InvalidAuthInputException → 400; DuplicateEmailExce
 
 Nếu SMTP lỗi sau register, user/challenge vẫn tồn tại và emailVerified=false. Client hướng dẫn gửi lại sau cooldown; không tự đăng ký lại để tránh trùng email. Endpoint gửi lại cần thêm rate limiting theo nguồn request ở tầng HTTP khi triển khai API; giới hạn theo tài khoản đã có ở database. Khi tích hợp với Huy, handler BusinessException chung phải nhường ưu tiên cho các handler auth cụ thể để không biến 401/409/429/503 thành 400.
 
-
 ## 4.10. Cập nhật sau phase 2 — JWT service và filter
 
 AuthService đã được wiring với JwtService thật. Login ở tầng service cấp signed JWT HS256 với sub là user ID dạng chuỗi, iat/exp/iss; expiresIn là giây. JWT không chứa email/quyền/trạng thái/hash; CurrentUserLoader lấy lại dữ liệu từ database và kiểm tra ACTIVE + emailVerified. Khóa/xóa hoặc thu hồi xác minh làm request với token cũ bị từ chối; đổi role áp dụng ở request tiếp theo.
@@ -820,7 +892,6 @@ JWT_SECRET là key Base64 tối thiểu 32 byte giải mã, tách key OTP; JWT_I
 JwtAuthenticationFilter chấp nhận scheme Bearer không phân biệt hoa thường với một khoảng trắng, một token không có whitespace; thiếu Authorization hoặc scheme khác đi tiếp không tạo danh tính. Authorization trùng, Bearer rỗng/hỏng/hết hạn hoặc tài khoản không hợp lệ gọi AuthenticationEntryPoint bằng lỗi chung. Lỗi database/controller không bị biến thành lỗi token. Filter không ghi đè Authentication đã có nhưng vẫn kiểm tra Bearer được gửi; context do filter tạo được dọn sau request.
 
 **Chưa có endpoint auth hoặc chain production trong phase 2.** Các kết quả 401 nêu trên đã kiểm tra qua filter fixture; phase 3 cần gắn filter đúng một lần, cung cấp JSON entrypoint/403 handler, tắt Basic/form login và thực thi bảng quyền endpoint. Không dùng kết quả filter fixture làm bằng chứng API hiện đã phục vụ JWT.
-
 
 ## 4.11. Hợp đồng thực tế sau phase 3
 
@@ -867,7 +938,6 @@ Rate limit IP/endpoint mặc định mỗi 60 giây: register 5, login 10, verif
 CORS chỉ cho origin được cấu hình rõ, credentials=false; origin bị từ chối nhận 403 JSON. Swagger public khi docs bật rõ (mặc định dev/test), môi trường khác tắt. OpenAPI có bearerAuth trên /auth/me, không yêu cầu Bearer cho public auth endpoints. Profile đã triển khai ở phase 4 (4.12). Các CRUD nghiệp vụ còn là thiết kế; rule security không có nghĩa là đã có controller.
 
 Mẫu thử local: requests/auth.http. Nghiệm thu: docs/07-auth-guide.md.
-
 
 ## 4.12. Contract đã triển khai ở phase 4
 
