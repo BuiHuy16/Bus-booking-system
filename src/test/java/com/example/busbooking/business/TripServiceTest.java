@@ -64,6 +64,16 @@ class TripServiceTest {
     }
 
     @Test
+    void searchTrips_whenAllFiltersAreNull_shouldDelegateNullsWithoutChangingThem() {
+        when(tripRepository.search(null, null, null)).thenReturn(List.of());
+
+        assertTrue(tripService.searchTrips(null, null, null).isEmpty());
+
+        verify(tripRepository).search(null, null, null);
+        verifyNoMoreInteractions(tripRepository);
+    }
+
+    @Test
     void getTripById_whenTripExists_shouldReturnTrip() {
         Long tripId = 10L;
         Trip expectedTrip = mock(Trip.class);

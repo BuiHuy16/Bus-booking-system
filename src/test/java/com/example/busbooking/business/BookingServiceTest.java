@@ -11,6 +11,7 @@ import com.example.busbooking.domain.exception.InsufficientSeatsException;
 import com.example.busbooking.domain.exception.ResourceNotFoundException;
 import com.example.busbooking.domain.model.Booking;
 import com.example.busbooking.domain.model.Trip;
+import com.example.busbooking.domain.model.VehicleSummary;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -166,11 +167,15 @@ class BookingServiceTest {
     @Test
     void cancel_whenOwnerCancelsConfirmedBooking_shouldRestoreSeatsAndUpdateStatus() {
         Booking booking = mock(Booking.class);
+        Trip trip = mock(Trip.class);
         when(bookingRepository.findByIdForUpdate(BOOKING_ID)).thenReturn(Optional.of(booking));
         when(booking.getUserId()).thenReturn(USER_ID);
         when(booking.getStatus()).thenReturn(BookingStatus.CONFIRMED);
         when(booking.getTripId()).thenReturn(TRIP_ID);
         when(booking.getQuantity()).thenReturn(2);
+        when(tripRepository.findByIdForUpdate(TRIP_ID)).thenReturn(Optional.of(trip));
+        when(trip.getAvailableSeats()).thenReturn(3);
+        when(trip.getVehicle()).thenReturn(new VehicleSummary("SLEEPER", 10, "Operator"));
         when(tripRepository.updateAvailableSeats(TRIP_ID, 2)).thenReturn(true);
         Booking cancelledBooking = mock(Booking.class);
         when(bookingRepository.updateStatus(BOOKING_ID, BookingStatus.CANCELLED))
@@ -211,15 +216,39 @@ class BookingServiceTest {
     @Test
     void cancel_whenSeatRestoreFails_shouldRejectWithoutUpdatingBooking() {
         Booking booking = mock(Booking.class);
+        Trip trip = mock(Trip.class);
         when(bookingRepository.findByIdForUpdate(BOOKING_ID)).thenReturn(Optional.of(booking));
         when(booking.getUserId()).thenReturn(USER_ID);
         when(booking.getStatus()).thenReturn(BookingStatus.CONFIRMED);
         when(booking.getTripId()).thenReturn(TRIP_ID);
         when(booking.getQuantity()).thenReturn(2);
+        when(tripRepository.findByIdForUpdate(TRIP_ID)).thenReturn(Optional.of(trip));
+        when(trip.getAvailableSeats()).thenReturn(3);
+        when(trip.getVehicle()).thenReturn(new VehicleSummary("SLEEPER", 10, "Operator"));
         when(tripRepository.updateAvailableSeats(TRIP_ID, 2)).thenReturn(false);
 
         assertThrows(BusinessException.class,
                 () -> bookingService.cancel(USER_ID, false, BOOKING_ID));
+        verify(bookingRepository, never()).updateStatus(anyLong(), any(BookingStatus.class));
+    }
+
+    @Test
+    void cancel_whenRestoringWouldExceedVehicleCapacity_shouldRejectWithoutUpdating() {
+        Booking booking = mock(Booking.class);
+        Trip trip = mock(Trip.class);
+        when(bookingRepository.findByIdForUpdate(BOOKING_ID)).thenReturn(Optional.of(booking));
+        when(booking.getUserId()).thenReturn(USER_ID);
+        when(booking.getStatus()).thenReturn(BookingStatus.CONFIRMED);
+        when(booking.getTripId()).thenReturn(TRIP_ID);
+        when(booking.getQuantity()).thenReturn(2);
+        when(tripRepository.findByIdForUpdate(TRIP_ID)).thenReturn(Optional.of(trip));
+        when(trip.getAvailableSeats()).thenReturn(9);
+        when(trip.getVehicle()).thenReturn(new VehicleSummary("SLEEPER", 10, "Operator"));
+
+        assertThrows(BusinessException.class,
+                () -> bookingService.cancel(USER_ID, false, BOOKING_ID));
+
+        verify(tripRepository, never()).updateAvailableSeats(anyLong(), anyInt());
         verify(bookingRepository, never()).updateStatus(anyLong(), any(BookingStatus.class));
     }
 }

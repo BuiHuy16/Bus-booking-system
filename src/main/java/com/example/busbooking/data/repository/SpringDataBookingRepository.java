@@ -16,7 +16,7 @@ public interface SpringDataBookingRepository extends JpaRepository<BookingEntity
     @Query("SELECT b FROM BookingEntity b WHERE b.id = :id")
     Optional<BookingEntity> findByIdForUpdate(@Param("id") Long id);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE BookingEntity b SET b.status = :status WHERE b.id = :id")
     int updateStatus(@Param("id") Long id, @Param("status") BookingStatus status);
 }

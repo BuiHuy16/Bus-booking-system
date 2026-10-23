@@ -67,6 +67,13 @@ public class BookingService {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BusinessException("Booking is already cancelled");
         }
+        Trip trip = tripRepository.findByIdForUpdate(booking.getTripId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Trip not found with id: " + booking.getTripId()));
+        if (trip.getVehicle() == null
+                || trip.getAvailableSeats() + booking.getQuantity() > trip.getVehicle().seatCapacity()) {
+            throw new BusinessException("Unable to restore available seats");
+        }
         if (!tripRepository.updateAvailableSeats(booking.getTripId(), booking.getQuantity())) {
             throw new BusinessException("Unable to restore available seats");
         }

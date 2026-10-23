@@ -87,6 +87,8 @@ public interface SpringDataTripRepository
     @Query("""
         SELECT t
         FROM TripEntity t
+        JOIN FETCH t.vehicle v
+        JOIN FETCH v.operator
         WHERE t.id = :tripId
         """)
     Optional<TripEntity> findByIdForUpdate(
