@@ -9,10 +9,18 @@ public record TripResponse(
         Long id,
         Long routeId,
         Long vehicleId,
+        RouteDetails route,
+        VehicleDetails vehicle,
+        String origin,
+        String destination,
+        String vehicleType,
+        String operatorName,
         LocalDateTime departureTime,
         LocalDateTime arrivalTime,
         BigDecimal price,
         int availableSeats,
         TripStatus status
 ) {
+    public record RouteDetails(String origin, String destination, int estimatedDurationMinutes) {}
+    public record VehicleDetails(String vehicleType, int seatCapacity, String operatorName) {}
 }

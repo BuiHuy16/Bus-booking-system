@@ -4,6 +4,7 @@ import com.example.busbooking.api.dto.booking.*;
 import com.example.busbooking.api.mapper.BookingDtoMapper;
 import com.example.busbooking.business.service.BookingService;
 import com.example.busbooking.domain.exception.ForbiddenOperationException;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
+@SecurityRequirement(name = "bearerAuth")
 public class BookingController {
     private final BookingService bookingService;
     private final BookingDtoMapper mapper;

@@ -40,7 +40,7 @@ public class BookingService {
             throw new InsufficientSeatsException("Not enough available seats");
         }
         BigDecimal total = trip.getPrice().multiply(BigDecimal.valueOf(quantity));
-        Booking booking = new Booking(null, "BK-" + UUID.randomUUID(), userId, tripId,
+        Booking booking = new Booking(null, "BK-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20), userId, tripId,
                 passengerName, passengerPhone, quantity, trip.getPrice(), total,
                 BookingStatus.CONFIRMED, LocalDateTime.now());
         return bookingRepository.save(booking);

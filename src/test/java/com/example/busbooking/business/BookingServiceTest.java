@@ -63,7 +63,11 @@ class BookingServiceTest {
         assertEquals(USER_ID, newBooking.getUserId());
         assertEquals(TRIP_ID, newBooking.getTripId());
         assertEquals(2, newBooking.getQuantity());
+        assertEquals(new BigDecimal("150000"), newBooking.getUnitPrice());
+        assertEquals(new BigDecimal("300000"), newBooking.getTotalAmount());
         assertEquals(BookingStatus.CONFIRMED, newBooking.getStatus());
+        assertNotNull(newBooking.getBookingCode());
+        assertTrue(newBooking.getBookingCode().startsWith("BK-"));
         verify(tripRepository).updateAvailableSeats(TRIP_ID, -2);
     }
 
@@ -89,7 +93,7 @@ class BookingServiceTest {
     void create_whenTripIsNotScheduled_shouldReject() {
         Trip trip = mock(Trip.class);
         when(tripRepository.findByIdForUpdate(TRIP_ID)).thenReturn(Optional.of(trip));
-        // Không stub getStatus(): mặc định là null, khác SCHEDULED.
+        when(trip.getStatus()).thenReturn(TripStatus.CANCELLED);
 
         assertThrows(BusinessException.class,
                 () -> bookingService.create(USER_ID, TRIP_ID, "A", "0901234567", 1));

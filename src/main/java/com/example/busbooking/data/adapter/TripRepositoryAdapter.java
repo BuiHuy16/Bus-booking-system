@@ -45,7 +45,7 @@ public class TripRepositoryAdapter implements TripRepository {
 
     @Override
     public Optional<Trip> findById(Long tripId) {
-        return springDataTripRepository.findById(tripId)
+        return springDataTripRepository.findDetailedById(tripId)
                 .map(tripPersistenceMapper::toDomain);
     }
 

@@ -54,8 +54,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Object> notFound(WebRequest request) {
-        return reply(request, 404, "NOT_FOUND", "User not found", Map.of(), new HttpHeaders());
+    public ResponseEntity<Object> notFound(ResourceNotFoundException error, WebRequest request) {
+        return reply(request, 404, "NOT_FOUND", error.getMessage(), Map.of(), new HttpHeaders());
     }
 
     @ExceptionHandler(AccountNotEligibleException.class)
@@ -64,8 +64,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Object> business(WebRequest request) {
+    public ResponseEntity<Object> business(BusinessException error, WebRequest request) {
         return reply(request, 400, "BUSINESS_ERROR", "Request cannot be processed", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(InsufficientSeatsException.class)
+    public ResponseEntity<Object> insufficientSeats(InsufficientSeatsException error, WebRequest request) {
+        return reply(request, 409, "INSUFFICIENT_SEATS", error.getMessage(), Map.of(), new HttpHeaders());
     }
 
     @ExceptionHandler(Exception.class)

@@ -7,13 +7,13 @@ CREATE TABLE trips (
     price NUMERIC(12, 2) NOT NULL,
     available_seats INTEGER NOT NULL,
     status VARCHAR(30) NOT NULL,
-
-    CONSTRAINT chk_trips_price
-        CHECK (price >= 0),
-
-    CONSTRAINT chk_trips_available_seats
-        CHECK (available_seats >= 0),
-
-    CONSTRAINT chk_trips_arrival
-        CHECK (arrival_time > departure_time)
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_trips_route FOREIGN KEY (route_id) REFERENCES routes(id),
+    CONSTRAINT fk_trips_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
+    CONSTRAINT chk_trips_price CHECK (price >= 0),
+    CONSTRAINT chk_trips_available_seats CHECK (available_seats >= 0),
+    CONSTRAINT chk_trips_arrival CHECK (arrival_time > departure_time),
+    CONSTRAINT ck_trips_status CHECK (
+        status IN ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')
+    )
 );

@@ -19,6 +19,17 @@ public class TripEntity {
     @Column(name = "vehicle_id", nullable = false)
     private Long vehicleId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "route_id", insertable = false, updatable = false)
+    private RouteEntity route;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "vehicle_id", insertable = false, updatable = false)
+    private VehicleEntity vehicle;
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private LocalDateTime createdAt;
+
     @Column(name = "departure_time", nullable = false)
     private LocalDateTime departureTime;
 
@@ -46,4 +57,7 @@ public class TripEntity {
     public BigDecimal getPrice() { return price; }
     public int getAvailableSeats() { return availableSeats; }
     public TripStatus getStatus() { return status; }
+    public RouteEntity getRoute() { return route; }
+    public VehicleEntity getVehicle() { return vehicle; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }
