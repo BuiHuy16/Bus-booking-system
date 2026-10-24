@@ -23,6 +23,7 @@ public class RouteEntity {
     private String status;
     protected RouteEntity() {}
     public Long getId() { return id; }
+    public String getStatus() { return status; }
     public LocationEntity getOrigin() { return origin; }
     public LocationEntity getDestination() { return destination; }
     public int getEstimatedDurationMinutes() { return estimatedDurationMinutes; }

@@ -16,6 +16,22 @@ import java.util.Optional;
 public interface SpringDataTripRepository
         extends JpaRepository<TripEntity, Long> {
 
+    @Query("""
+        SELECT t FROM TripEntity t
+        JOIN FETCH t.route r
+        JOIN FETCH r.origin
+        JOIN FETCH r.destination
+        JOIN FETCH t.vehicle v
+        JOIN FETCH v.operator
+        WHERE (:skipRoute = true OR t.routeId = :routeId)
+          AND (:skipStatus = true OR t.status = :status)
+          AND (:skipDate = true OR (t.departureTime >= :start AND t.departureTime < :end))
+        ORDER BY t.departureTime ASC, t.id ASC
+        """)
+    List<TripEntity> findForAdmin(Long routeId, com.example.busbooking.domain.enums.TripStatus status,
+                                  LocalDateTime start, LocalDateTime end,
+                                  boolean skipRoute, boolean skipStatus, boolean skipDate);
+
     // Giữ nguyên API mà RepositoryAdapter đang sử dụng
     default List<TripEntity> search(
             Long originId,
@@ -84,11 +100,11 @@ public interface SpringDataTripRepository
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    // Lock the root row before loading associations. A joined locking query can lose the row
+    // during PostgreSQL's recheck if a concurrent update changes its vehicle foreign key.
     @Query("""
         SELECT t
         FROM TripEntity t
-        JOIN FETCH t.vehicle v
-        JOIN FETCH v.operator
         WHERE t.id = :tripId
         """)
     Optional<TripEntity> findByIdForUpdate(

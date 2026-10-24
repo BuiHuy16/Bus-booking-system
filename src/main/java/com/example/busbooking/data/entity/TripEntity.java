@@ -46,7 +46,18 @@ public class TripEntity {
     @Column(nullable = false)
     private TripStatus status;
 
-    protected TripEntity() {
+    public TripEntity() {
+    }
+
+    public void updateDetails(Long routeId, Long vehicleId, LocalDateTime departureTime,
+                              LocalDateTime arrivalTime, BigDecimal price, int availableSeats, TripStatus status) {
+        this.routeId = routeId;
+        this.vehicleId = vehicleId;
+        this.departureTime = departureTime;
+        this.arrivalTime = arrivalTime;
+        this.price = price;
+        this.availableSeats = availableSeats;
+        this.status = status;
     }
 
     public Long getId() { return id; }

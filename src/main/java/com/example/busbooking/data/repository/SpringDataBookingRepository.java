@@ -9,6 +9,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SpringDataBookingRepository extends JpaRepository<BookingEntity, Long> {
+    @Query("SELECT COALESCE(SUM(b.quantity), 0) FROM BookingEntity b WHERE b.tripId = :tripId AND b.status = :status")
+    long countSeats(@Param("tripId") Long tripId, @Param("status") BookingStatus status);
+
+    @Query("""
+        SELECT b FROM BookingEntity b
+        WHERE (:skipUser = true OR b.userId = :userId)
+          AND (:skipTrip = true OR b.tripId = :tripId)
+          AND (:skipStatus = true OR b.status = :status)
+        ORDER BY b.bookedAt DESC, b.id DESC
+        """)
+    List<BookingEntity> findForAdmin(Long userId, Long tripId, BookingStatus status,
+                                     boolean skipUser, boolean skipTrip, boolean skipStatus);
     Optional<BookingEntity> findByIdAndUserId(Long id, Long userId);
     List<BookingEntity> findAllByUserIdOrderByBookedAtDesc(Long userId);
 

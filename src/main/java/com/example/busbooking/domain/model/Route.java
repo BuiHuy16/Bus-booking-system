@@ -1,4 +1,3 @@
 package com.example.busbooking.domain.model;
 
-public class Route {
-}
+public record Route(Long id, com.example.busbooking.domain.enums.RouteStatus status) {}

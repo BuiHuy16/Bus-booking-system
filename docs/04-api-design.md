@@ -1,6 +1,6 @@
 # 4. Thiết kế API
 
-**Trạng thái hiện tại:** 5 endpoint auth, GET/PUT profile và PUT role đã triển khai. Contract auth/lỗi ở 4.11, profile/role ở 4.12; ví dụ đầu tài liệu đã cập nhật. Trip/Booking và các CRUD quản trị khác là thiết kế dự kiến, chưa có controller nghiệp vụ trên nhánh auth. Mục 4.9–4.10 ghi lịch sử, không mô tả trạng thái hiện tại. Base URL local: http\://localhost:8085/api.
+**Trạng thái tài liệu (cập nhật 24/10/2026):** Các API Authentication (5), User Profile (2), Trip công khai (2), Booking (4), quản lý role (1) và Admin Trip/Booking (5) đã triển khai. Contract Admin mới ở mục 4.13; các API quản trị khác trong mục 4.6 vẫn là **thiết kế dự kiến**. Kế hoạch API Admin đã tinh gọn từ 25 xuống 19 endpoint: bỏ 2 endpoint trùng nghiệp vụ Booking, hoãn 4 endpoint DELETE dữ liệu nền tảng. **Tổng kế hoạch ưu tiên: 33 API**, gồm 19 endpoint đã triển khai và 14 endpoint Admin dự kiến. Mục 4.9–4.10 là ghi chép lịch sử theo phase, không phản ánh trạng thái triển khai hiện tại. Base URL local: `http://localhost:8085/api`.
 
 ## 4.1. API Conventions
 
@@ -164,8 +164,11 @@ Response thành công: **`204 No Content`**, không có response body và **khô
 Quy tắc nghiệp vụ:
 
 - OTP có hiệu lực **10 phút**, chỉ dùng **một lần**.
+
 - Tối đa **5 lần nhập sai cho mỗi mã**.
+
 - Mã sai, hết hạn, đã dùng hoặc vượt giới hạn lần thử được xử lý thống nhất bằng `400 INVALID_VERIFICATION_CODE`.
+
 - Hệ thống không trả OTP hoặc hash OTP trong response; database chỉ lưu HMAC digest của OTP.
 
 ### 4.2.5. Resend Email Verification (Gửi lại mã OTP)
@@ -191,8 +194,11 @@ Response thành công: **`202 Accepted`**, trả thông báo chung để hạn c
 Quy tắc nghiệp vụ:
 
 - Mỗi tài khoản phải chờ ít nhất **60 giây** giữa các lần gửi mã hợp lệ.
+
 - Gửi lại thành công tạo mã mới, vô hiệu hóa mã cũ, đặt lại thời hạn và số lần nhập sai.
+
 - Request bị giới hạn tần suất có thể trả `429 RATE_LIMITED`; khi dịch vụ gửi email không khả dụng có thể trả `503 EMAIL_DELIVERY_UNAVAILABLE`.
+
 - OTP chỉ được gửi qua SMTP, không trả trong JSON response.
 
 ---
@@ -255,7 +261,7 @@ Response:
 [
   {
     "id": 10,
-    "bookingCode": "BK20261009001",
+    "bookingCode": "BK-819207a570db4323a216",
     "tripId": 5,
     "passengerName": "Nguyen Van A",
     "passengerPhone": "0901234567",
@@ -382,7 +388,7 @@ Response `201 Created`:
 ```json
 {
   "id": 10,
-  "bookingCode": "BK20261009001",
+  "bookingCode": "BK-819207a570db4323a216",
   "tripId": 5,
   "passengerName": "Nguyen Van A",
   "passengerPhone": "0901234567",
@@ -421,7 +427,7 @@ Response:
 ```json
 {
   "id": 10,
-  "bookingCode": "BK20261009001",
+  "bookingCode": "BK-819207a570db4323a216",
   "status": "CANCELLED"
 }
 ```
@@ -430,11 +436,13 @@ Response:
 
 ## 4.6. Admin APIs
 
-Các API trong phần này yêu cầu:
+Các API quản trị yêu cầu JWT hợp lệ và phân quyền:
 
 ```text
 Role: ADMIN/SUPER_ADMIN (riêng quản lý role chỉ SUPER_ADMIN)
 ```
+
+**Phạm vi đề xuất cho Phase 1:** 19 endpoint Admin nghiệp vụ, so với 25 endpoint ở thiết kế ban đầu. Không triển khai xóa vật lý đối với dữ liệu nền tảng đã được liên kết. Năm endpoint Admin Trip/Booking ở mục 4.6.6–4.6.7 đã triển khai theo contract 4.13; 14 endpoint còn lại vẫn là thiết kế. Riêng `PUT /api/admin/users/{userId}/role` được mô tả ở mục 4.12 và đã triển khai.
 
 ### 4.6.1. User Management
 
@@ -443,6 +451,8 @@ Lấy danh sách người dùng:
 ```http
 GET /api/admin/users
 ```
+
+Chỉ trả thông tin cần thiết cho quản trị; không trả password hash, OTP hoặc JWT.
 
 Cập nhật trạng thái người dùng:
 
@@ -457,6 +467,8 @@ Request:
   "status": "INACTIVE"
 }
 ```
+
+Trạng thái hợp lệ theo schema hiện tại: `ACTIVE` hoặc `INACTIVE`. Cần áp dụng các ràng buộc về quyền hạn và việc vô hiệu hóa tài khoản theo business rule; không sử dụng API này để cấp quyền `SUPER_ADMIN`.
 
 ### 4.6.2. Bus Operator Management
 
@@ -478,11 +490,7 @@ Cập nhật nhà xe:
 PUT /api/admin/operators/{operatorId}
 ```
 
-Xóa nhà xe:
-
-```http
-DELETE /api/admin/operators/{operatorId}
-```
+**Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/operators/{operatorId}`. Đối với nhà xe không còn hoạt động, ưu tiên cập nhật `status = INACTIVE` bằng API PUT, thay vì xóa bản ghi có phương tiện liên kết.
 
 ### 4.6.3. Vehicle Management
 
@@ -504,11 +512,7 @@ Cập nhật xe:
 PUT /api/admin/vehicles/{vehicleId}
 ```
 
-Xóa xe:
-
-```http
-DELETE /api/admin/vehicles/{vehicleId}
-```
+**Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/vehicles/{vehicleId}`. Ưu tiên quản lý `status` (`ACTIVE`, `INACTIVE`, `MAINTENANCE`) và không làm mất quan hệ với Trip hoặc Booking lịch sử. Cần kiểm tra các Trip đang hoạt động trước khi thay đổi xe hoặc sức chứa.
 
 ### 4.6.4. Location Management
 
@@ -530,11 +534,7 @@ Cập nhật địa điểm:
 PUT /api/admin/locations/{locationId}
 ```
 
-Xóa địa điểm:
-
-```http
-DELETE /api/admin/locations/{locationId}
-```
+**Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/locations/{locationId}` vì Location có thể đang được các Route tham chiếu. Bảng `locations` hiện chưa có cột `status`; không giả định có thể vô hiệu hóa Location bằng `ACTIVE/INACTIVE` nếu chưa bổ sung thiết kế/schema.
 
 ### 4.6.5. Route Management
 
@@ -556,19 +556,17 @@ Cập nhật tuyến:
 PUT /api/admin/routes/{routeId}
 ```
 
-Xóa tuyến:
-
-```http
-DELETE /api/admin/routes/{routeId}
-```
+**Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/routes/{routeId}`. Ưu tiên chuyển Route sang `INACTIVE` qua API PUT khi không còn khai thác; không xóa lịch sử chuyến xe sử dụng tuyến đó.
 
 ### 4.6.6. Trip Management
 
-Lấy danh sách chuyến:
+Lấy danh sách chuyến phục vụ quản trị:
 
 ```http
 GET /api/admin/trips
 ```
+
+Đã triển khai với bộ lọc riêng `routeId`, `status`, `departureDate`, xem mọi trạng thái Trip. API công khai `GET /api/trips` giữ nguyên contract và hành vi hiện tại.
 
 Tạo chuyến:
 
@@ -582,39 +580,30 @@ Cập nhật chuyến:
 PUT /api/admin/trips/{tripId}
 ```
 
-Xóa hoặc hủy chuyến:
+Hủy chuyến (không xóa vật lý):
 
 ```http
 DELETE /api/admin/trips/{tripId}
 ```
 
+**Đã triển khai Phase 1 (24/10/2026):** Endpoint DELETE chuyển `trips.status` sang `CANCELLED`, không xóa bản ghi. Chính sách tạm thời: chỉ hủy Trip `SCHEDULED` không có Booking `CONFIRMED`; nếu có thì trả `409 TRIP_CONFLICT`. Hủy lặp trả `200` với Trip đã hủy. Không tự động hủy Booking hay hoàn tiền. Chính sách cuối cùng về hoàn tiền/hủy hàng loạt cần được nghiệp vụ phê duyệt. Chi tiết contract của cả 5 API Admin Trip/Booking ở mục 4.13.
+
 ### 4.6.7. Booking Management
 
-Lấy danh sách booking:
+Lấy danh sách booking toàn hệ thống:
 
 ```http
 GET /api/admin/bookings
 ```
 
-Xem chi tiết booking:
+Đã triển khai: xem Booking của mọi tài khoản, lọc tùy chọn theo `userId`, `tripId`, `status`. Response dùng `BookingResponse` hiện có. Phân trang chưa thuộc Phase 1.
 
-```http
-GET /api/admin/bookings/{bookingId}
-```
+**Thay đổi so với thiết kế ban đầu:**
 
-Cập nhật trạng thái booking:
+- **Bỏ** `GET /api/admin/bookings/{bookingId}`: dùng `GET /api/bookings/{bookingId}` đã cho phép Admin xem chi tiết Booking theo quy tắc phân quyền.
+- **Bỏ** `PUT /api/admin/bookings/{bookingId}/status`: không cho cập nhật tùy ý `status` mà bỏ qua nghiệp vụ. Admin hủy Booking bằng `DELETE /api/bookings/{bookingId}`, đi qua `BookingService.cancel()` để cập nhật `CANCELLED` và hoàn ghế trong cùng transaction.
 
-```http
-PUT /api/admin/bookings/{bookingId}/status
-```
-
-Request:
-
-```json
-{
-  "status": "CANCELLED"
-}
-```
+Các API Booking hiện có vẫn phải kiểm tra ownership đối với USER và quyền Admin/SUPER_ADMIN theo SecurityConfig; không được cho USER xem/hủy Booking của người khác.
 
 ---
 
@@ -715,10 +704,10 @@ Trước lần đăng nhập đầu tiên, người dùng đăng ký tài khoả
 
 ```text
 POST /api/auth/register
-  -> Nhận OTP qua email
-  -> POST /api/auth/verify-email
-  -> users.email_verified = true
-  -> POST /api/auth/login
+-> Nhận OTP qua email
+-> POST /api/auth/verify-email
+-> users.email_verified = true
+-> POST /api/auth/login
 ```
 
 Nếu chưa nhận được mã, người dùng gọi `POST /api/auth/resend-verification` rồi xác minh bằng mã mới. OTP không thay thế JWT: chỉ sau khi đăng nhập thành công, client mới nhận JWT.
@@ -727,27 +716,27 @@ Luồng đăng nhập và cấp JWT:
 
 ```text
 Client
-  │
-  │ POST /api/auth/login
-  ▼
+│
+│ POST /api/auth/login
+▼
 AuthController
-  │
-  ▼
+│
+▼
 AuthService
-  │
-  │ Verify email/password
-  ▼
+│
+│ Verify email/password
+▼
 UserRepository
-  │
-  ▼
+│
+▼
 PostgreSQL
-  │
-  │ User information
-  ▼
+│
+│ User information
+▼
 AuthService
-  │
-  │ Generate JWT
-  ▼
+│
+│ Generate JWT
+▼
 Client
 ```
 
@@ -761,25 +750,25 @@ Authorization: Bearer <JWT_TOKEN>
 
 ```text
 Client
-  │
-  │ HTTP Request + JWT
-  ▼
+│
+│ HTTP Request + JWT
+▼
 Security Filter
-  │
-  ├── Invalid/Missing Token ──► 401 Unauthorized
-  │
-  ▼
+│
+├── Invalid/Missing Token ──► 401 Unauthorized
+│
+▼
 Authentication Context
-  │
-  ├── Insufficient Role ───────► 403 Forbidden
-  │
-  ▼
+│
+├── Insufficient Role ───────► 403 Forbidden
+│
+▼
 Controller
-  │
-  ▼
+│
+▼
 Business Service
-  │
-  ▼
+│
+▼
 Response
 ```
 
@@ -793,7 +782,7 @@ Hệ thống có ba role:
 | ADMIN | Các route quản trị nghiệp vụ; không quản lý role |
 | SUPER_ADMIN | Có quyền quản trị ADMIN và chỉ role này nâng/hạ USER ↔ ADMIN |
 
-Các route quản trị cho ADMIN/SUPER_ADMIN; riêng PUT /api/admin/users/{userId}/role chỉ SUPER_ADMIN. Những CRUD bên dưới là thiết kế, chưa triển khai.
+Các route quản trị nghiệp vụ dành cho ADMIN/SUPER_ADMIN; riêng `PUT /api/admin/users/{userId}/role` chỉ SUPER_ADMIN. Các endpoint CRUD quản trị ở mục 4.6 là thiết kế dự kiến, chưa xác nhận đã triển khai.
 
 Ví dụ:
 
@@ -819,20 +808,15 @@ Ví dụ:
 
 ```text
 USER A
-  │
-  ├── GET /api/bookings/10
-  │
-  └── Booking 10 thuộc USER A
-       └── Allow
+  └── GET /api/bookings/10
+       └── Booking 10 thuộc USER A → Allow
+
 USER B
-  │
-  ├── GET /api/bookings/10
-  │
-  └── Booking 10 thuộc USER A
-       └── Deny
+  └── GET /api/bookings/10
+       └── Booking 10 thuộc USER A → Deny
 ```
 
-Việc kiểm tra ownership được thực hiện trong ****Business Layer****, vì đây là business rule của hệ thống.
+Việc kiểm tra ownership được thực hiện trong **Business Layer**, vì đây là business rule của hệ thống.
 
 ### 4.8.5. Public and Protected APIs
 
@@ -906,13 +890,18 @@ JwtAuthenticationFilter chấp nhận scheme Bearer không phân biệt hoa thư
 Verify request mẫu:
 
 ```json
-{"email": "a@example.com", "code": "012345"}
+{
+  "email": "a@example.com",
+  "code": "012345"
+}
 ```
 
 Resend request mẫu:
 
 ```json
-{"email": "a@example.com"}
+{
+  "email": "a@example.com"
+}
 ```
 
 Auth DTO từ chối trường không hỗ trợ bằng 400. Validation dùng chung AuthInputPolicy: email/name/phone được normalize theo quy tắc hiện có, password không trim; password đăng ký tối đa 72 byte UTF-8 thay vì 72 ký tự. Các response không có hash hoặc OTP; chỉ login trả token, Cache-Control: no-store. Không dùng session/cookie để xác thực.
@@ -935,7 +924,7 @@ Security áp dụng bảng quyền plan 07 theo method/path; không mở toàn b
 
 Rate limit IP/endpoint mặc định mỗi 60 giây: register 5, login 10, verify 20, resend 5; kiểm tra trước JWT/body. Request đã vượt quota trả 429 kể cả có Bearer hỏng. Dùng IP kết nối, không tin forwarded headers. Bộ đếm in-memory bounded theo AUTH_RATE_MAX_KEYS, không chia sẻ giữa instance. OTP theo tài khoản vẫn tối đa 5 lần sai/mã và resend cooldown 60 giây.
 
-CORS chỉ cho origin được cấu hình rõ, credentials=false; origin bị từ chối nhận 403 JSON. Swagger public khi docs bật rõ (mặc định dev/test), môi trường khác tắt. OpenAPI có bearerAuth trên /auth/me, không yêu cầu Bearer cho public auth endpoints. Profile đã triển khai ở phase 4 (4.12). Các CRUD nghiệp vụ còn là thiết kế; rule security không có nghĩa là đã có controller.
+CORS chỉ cho origin được cấu hình rõ, credentials=false; origin bị từ chối nhận 403 JSON. Swagger public khi docs bật rõ (mặc định dev/test), môi trường khác tắt. OpenAPI có bearerAuth trên /auth/me, không yêu cầu Bearer cho public auth endpoints. Profile đã triển khai ở phase 4 (4.12). Các CRUD Admin nghiệp vụ ở mục 4.6 còn là thiết kế; rule security không đồng nghĩa đã có controller. Riêng API Trip công khai và Booking người dùng đã được triển khai, kiểm thử.
 
 Mẫu thử local: requests/auth.http. Nghiệm thu: docs/07-auth-guide.md.
 
@@ -956,3 +945,61 @@ PUT role nhận `{"role":"ADMIN"}` hoặc `{"role":"USER"}`. Nhân viên là USE
 Public register luôn tạo USER. Chỉ bootstrap nội bộ dev/test tạo SUPER_ADMIN đầu tiên, vẫn OTP email trước login. Database chặn tài khoản SUPER_ADMIN thứ hai, kể cả super admin hiện tại inactive. Không có API cấp/thay thế/hạ SUPER_ADMIN. SUPER_ADMIN có quyền các route quản trị ADMIN; CRUD nghiệp vụ chưa được triển khai.
 
 Các response profile/role có Cache-Control: no-store, không có hash/token. OpenAPI khai báo bearerAuth. Mẫu request: requests/profile.http và requests/super-admin.http.
+
+## 4.13. Admin Trip & Booking — implemented contract (24/10/2026)
+
+This section supersedes older planned-status statements for these five endpoints only.
+All require a valid JWT for an ACTIVE, email-verified ADMIN or SUPER_ADMIN.
+Anonymous/invalid JWT: `401`; USER: `403`. Existing role-management restrictions remain unchanged.
+
+| Method/path | Success | Response / optional filters |
+| --- | --- | --- |
+| GET /api/admin/trips | 200 | TripResponse array; routeId, status, departureDate (ISO date) |
+| POST /api/admin/trips | 201 | TripResponse; Location: /api/trips/{id} |
+| PUT /api/admin/trips/{tripId} | 200 | TripResponse |
+| DELETE /api/admin/trips/{tripId} | 200 | Cancelled TripResponse, including repeated cancellation |
+| GET /api/admin/bookings | 200 | BookingResponse array; userId, tripId, status |
+
+POST and PUT require the complete request body:
+
+```json
+{
+  "routeId": 1,
+  "vehicleId": 1,
+  "departureTime": "2026-11-10T08:00:00",
+  "arrivalTime": "2026-11-10T11:00:00",
+  "price": 150000
+}
+```
+
+IDs must be positive; Route and Vehicle must exist and be ACTIVE (a MAINTENANCE vehicle is ineligible).
+Times are local date-times, consistent with the existing schema and public API; arrival must follow departure.
+No new future-only departure restriction is imposed: the existing model has no such rule.
+Price is `0` through `9999999999.99`, with at most two decimal places, matching NUMERIC(12,2).
+Unknown body fields, including `availableSeats` and `status`, are rejected with `400 INVALID_REQUEST`.
+Bean validation failures return `400 VALIDATION_ERROR`; invalid time order or ineligible references return `400 BUSINESS_ERROR`.
+Missing Trip, Route or Vehicle returns `404 NOT_FOUND`.
+
+Creation always initializes SCHEDULED and the full vehicle seat capacity.
+Only SCHEDULED trips can be updated; other states return `409 TRIP_CONFLICT`.
+Keeping the same vehicle preserves availableSeats. Changing vehicle sets availableSeats to its capacity
+minus SUM(quantity) of CONFIRMED bookings; insufficient capacity returns `409 TRIP_CONFLICT`.
+Existing bookings, including their historical prices, remain unchanged.
+
+Cancellation is a **temporary Phase 1 policy**: a SCHEDULED trip with no CONFIRMED bookings can be soft-cancelled.
+Confirmed bookings, IN_PROGRESS and COMPLETED trips cause `409 TRIP_CONFLICT`.
+Cancelled booking history is retained; repeated cancellation returns the current CANCELLED trip.
+There is no physical trip deletion, mass booking cancellation, refund, or notification workflow.
+The final cancellation/refund policy requires business approval.
+
+Lists return unpaginated arrays, with all optional filters combined using AND.
+Trip departureDate covers [start of day, start of next day), ordered by departureTime then id ascending.
+Bookings are ordered by bookedAt then id descending; BookingResponse does not add user credentials or account details.
+Invalid enum/date/ID query syntax returns 400. Filters matching nothing return an empty array.
+The public trip search's existing inclusion of all states is preserved; admin filtering adds route/status selection.
+
+Admins use existing `GET /api/bookings/{bookingId}` and `DELETE /api/bookings/{bookingId}` across users.
+Both ADMIN and SUPER_ADMIN are recognized. USER ownership checks and single-booking cancellation remain in BookingService.
+No additional admin booking detail/status endpoints exist. OpenAPI reuses the existing `bearerAuth` scheme.
+
+Swagger requests, safety analysis, changed files and verification results: [Admin implementation report](08-admin-trip-booking-report.md).

@@ -23,6 +23,7 @@ public class VehicleEntity {
     private LocalDateTime createdAt;
     protected VehicleEntity() {}
     public Long getId() { return id; }
+    public String getStatus() { return status; }
     public String getVehicleType() { return vehicleType; }
     public int getSeatCapacity() { return seatCapacity; }
     public OperatorEntity getOperator() { return operator; }

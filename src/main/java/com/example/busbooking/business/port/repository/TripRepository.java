@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TripRepository {
+    List<Trip> findForAdmin(Long routeId, com.example.busbooking.domain.enums.TripStatus status, LocalDate departureDate);
+
+    Trip save(Trip trip);
 
     List<Trip> search(
             Long originId,

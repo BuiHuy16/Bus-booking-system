@@ -23,6 +23,13 @@ public class BookingRepositoryAdapter implements BookingRepository {
     public Booking save(Booking booking) {
         return mapper.toDomain(repository.save(mapper.toEntity(booking)));
     }
+    public long countConfirmedSeats(Long tripId) {
+        return repository.countSeats(tripId, BookingStatus.CONFIRMED);
+    }
+    public List<Booking> findForAdmin(Long userId, Long tripId, BookingStatus status) {
+        return repository.findForAdmin(userId, tripId, status, userId == null, tripId == null, status == null)
+                .stream().map(mapper::toDomain).toList();
+    }
     public Optional<Booking> findById(Long id) {
         return repository.findById(id).map(mapper::toDomain);
     }

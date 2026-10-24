@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BookingRepository {
+    long countConfirmedSeats(Long tripId);
+    List<Booking> findForAdmin(Long userId, Long tripId, com.example.busbooking.domain.enums.BookingStatus status);
     Booking save(Booking booking);
     Optional<Booking> findById(Long bookingId);
     Optional<Booking> findByIdForUpdate(Long bookingId);

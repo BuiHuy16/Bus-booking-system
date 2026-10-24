@@ -14,6 +14,9 @@ import java.util.Optional;
 @Component
 public class TripRepositoryAdapter implements TripRepository {
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
     private final SpringDataTripRepository springDataTripRepository;
     private final TripPersistenceMapper tripPersistenceMapper;
 
@@ -22,6 +25,29 @@ public class TripRepositoryAdapter implements TripRepository {
             TripPersistenceMapper tripPersistenceMapper) {
         this.springDataTripRepository = springDataTripRepository;
         this.tripPersistenceMapper = tripPersistenceMapper;
+    }
+
+    @Override
+    public List<Trip> findForAdmin(Long routeId, com.example.busbooking.domain.enums.TripStatus status,
+                                   LocalDate departureDate) {
+        return springDataTripRepository.findForAdmin(routeId, status,
+                departureDate == null ? null : departureDate.atStartOfDay(),
+                departureDate == null ? null : departureDate.plusDays(1).atStartOfDay(),
+                routeId == null, status == null, departureDate == null).stream()
+                .map(tripPersistenceMapper::toDomain).toList();
+    }
+
+    @Override
+    public Trip save(Trip trip) {
+        TripEntity entity = trip.getId() == null ? new TripEntity()
+                : springDataTripRepository.findById(trip.getId()).orElseThrow();
+        entity.updateDetails(trip.getRouteId(), trip.getVehicleId(), trip.getDepartureTime(),
+                trip.getArrivalTime(), trip.getPrice(), trip.getAvailableSeats(), trip.getStatus());
+        entity = springDataTripRepository.saveAndFlush(entity);
+        // Scalar foreign keys own these columns. Refresh only this trip after flushing so read-only
+        // route/vehicle associations reflect changed IDs, without clearing other pending work.
+        entityManager.refresh(entity);
+        return tripPersistenceMapper.toDomain(entity);
     }
 
     @Override

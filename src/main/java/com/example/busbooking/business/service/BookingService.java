@@ -59,6 +59,11 @@ public class BookingService {
         return bookingRepository.findByUserId(userId);
     }
 
+    @Transactional(readOnly = true)
+    public List<Booking> listForAdmin(Long userId, Long tripId, BookingStatus status) {
+        return bookingRepository.findForAdmin(userId, tripId, status);
+    }
+
     @Transactional
     public Booking cancel(Long userId, boolean admin, Long bookingId) {
         Booking booking = bookingRepository.findByIdForUpdate(bookingId)

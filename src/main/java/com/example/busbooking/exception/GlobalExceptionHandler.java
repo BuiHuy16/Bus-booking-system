@@ -68,6 +68,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return reply(request, 400, "BUSINESS_ERROR", "Request cannot be processed", Map.of(), new HttpHeaders());
     }
 
+    @ExceptionHandler(TripConflictException.class)
+    public ResponseEntity<Object> tripConflict(TripConflictException error, WebRequest request) {
+        return reply(request, 409, "TRIP_CONFLICT", error.getMessage(), Map.of(), new HttpHeaders());
+    }
+
     @ExceptionHandler(InsufficientSeatsException.class)
     public ResponseEntity<Object> insufficientSeats(InsufficientSeatsException error, WebRequest request) {
         return reply(request, 409, "INSUFFICIENT_SEATS", error.getMessage(), Map.of(), new HttpHeaders());

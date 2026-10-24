@@ -1,4 +1,3 @@
 package com.example.busbooking.domain.model;
 
-public class Vehicle {
-}
+public record Vehicle(Long id, int seatCapacity, com.example.busbooking.domain.enums.VehicleStatus status) {}
