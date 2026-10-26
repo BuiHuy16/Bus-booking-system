@@ -3,19 +3,67 @@ services:
     image: postgres:16
     container_name: busbooking-db
     restart: unless-stopped
+
     environment:
-      POSTGRES_DB: busbooking
+      POSTGRES_DB: busbooking_dev_fresh
       POSTGRES_USER: busbooking_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD_required}
+
     ports:
       - "5435:5432"
+
     volumes:
       - busbooking_data:/var/lib/postgresql/data
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U busbooking -d busbooking"]
+      test: ["CMD-SHELL", "pg_isready -U busbooking_user -d busbooking_dev_fresh"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: busbooking-backend
+    restart: unless-stopped
+
+    ports:
+      - "8086:8085"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+
+      DB_URL: jdbc:postgresql://postgres:5432/busbooking_dev_fresh
+      DB_USERNAME: busbooking_user
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD_required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_required}
+      EMAIL_OTP_SECRET: ${EMAIL_OTP_SECRET:?EMAIL_OTP_SECRET_required}
+
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      SMTP_FROM: no-reply@busbooking.local
+
+      BOOTSTRAP_SUPER_ADMIN_ENABLED: "false"
+
+      JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Ho_Chi_Minh"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: busbooking-docker-mailpit
+
+    ports:
+      - "8026:8025"
 
 volumes:
   busbooking_data:
