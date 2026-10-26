@@ -67,6 +67,7 @@ public class SecurityConfig {
                             "/api/auth/verify-email", "/api/auth/resend-verification").permitAll();
                     access.requestMatchers(HttpMethod.GET, "/api/auth/me").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN");
                     access.requestMatchers(HttpMethod.GET, "/api/trips", "/api/trips/{id}").permitAll();
+                    access.requestMatchers(HttpMethod.GET, "/api/locations").permitAll();
                     access.requestMatchers(HttpMethod.GET, "/api/users/me").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN");
                     access.requestMatchers(HttpMethod.PUT, "/api/users/me").hasAnyRole("USER", "ADMIN", "SUPER_ADMIN");
                     access.requestMatchers(HttpMethod.GET, "/api/users/me/bookings").hasRole("USER");

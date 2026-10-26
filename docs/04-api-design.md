@@ -1,6 +1,6 @@
 # 4. Thiết kế API
 
-**Trạng thái tài liệu (cập nhật 24/10/2026):** Các API Authentication (5), User Profile (2), Trip công khai (2), Booking (4), quản lý role (1) và Admin Trip/Booking (5) đã triển khai. Contract Admin mới ở mục 4.13; các API quản trị khác trong mục 4.6 vẫn là **thiết kế dự kiến**. Kế hoạch API Admin đã tinh gọn từ 25 xuống 19 endpoint: bỏ 2 endpoint trùng nghiệp vụ Booking, hoãn 4 endpoint DELETE dữ liệu nền tảng. **Tổng kế hoạch ưu tiên: 33 API**, gồm 19 endpoint đã triển khai và 14 endpoint Admin dự kiến. Mục 4.9–4.10 là ghi chép lịch sử theo phase, không phản ánh trạng thái triển khai hiện tại. Base URL local: `http://localhost:8085/api`.
+**Trạng thái tài liệu (cập nhật 24/10/2026):** Các API Authentication (5), User Profile (2), Trip công khai (2), Location công khai (1), Booking (4), quản lý role (1), Admin Trip/Booking (5), Admin Location (3), Admin Operator (3), Admin Route (3) và Admin Vehicle (3) đã triển khai. API User Status trong mục 4.6 vẫn là **thiết kế dự kiến**. Kế hoạch API Admin đã tinh gọn từ 25 xuống 19 endpoint: bỏ 2 endpoint trùng nghiệp vụ Booking, hoãn 4 endpoint DELETE dữ liệu nền tảng. **Tổng phạm vi hiện tại: 34 API**, gồm 32 endpoint đã triển khai và 2 endpoint Admin dự kiến. Mục 4.9–4.10 là ghi chép lịch sử theo phase, không phản ánh trạng thái triển khai hiện tại. Base URL local: `http://localhost:8085/api`.
 
 ## 4.1. API Conventions
 
@@ -442,7 +442,7 @@ Các API quản trị yêu cầu JWT hợp lệ và phân quyền:
 Role: ADMIN/SUPER_ADMIN (riêng quản lý role chỉ SUPER_ADMIN)
 ```
 
-**Phạm vi đề xuất cho Phase 1:** 19 endpoint Admin nghiệp vụ, so với 25 endpoint ở thiết kế ban đầu. Không triển khai xóa vật lý đối với dữ liệu nền tảng đã được liên kết. Năm endpoint Admin Trip/Booking ở mục 4.6.6–4.6.7 đã triển khai theo contract 4.13; 14 endpoint còn lại vẫn là thiết kế. Riêng `PUT /api/admin/users/{userId}/role` được mô tả ở mục 4.12 và đã triển khai.
+**Phạm vi đề xuất cho Phase 1:** 19 endpoint Admin nghiệp vụ, so với 25 endpoint ở thiết kế ban đầu. Không triển khai xóa vật lý đối với dữ liệu nền tảng đã được liên kết. Năm endpoint Admin Trip/Booking, ba endpoint Admin Location và ba endpoint Admin Operator đã triển khai; 8 endpoint còn lại vẫn là thiết kế. Riêng `PUT /api/admin/users/{userId}/role` được mô tả ở mục 4.12 và đã triển khai.
 
 ### 4.6.1. User Management
 
@@ -472,11 +472,15 @@ Trạng thái hợp lệ theo schema hiện tại: `ACTIVE` hoặc `INACTIVE`. C
 
 ### 4.6.2. Bus Operator Management
 
+Bus Operator Management đã triển khai. Name và email là duy nhất không phân biệt hoa/thường; email lưu lowercase, phone Việt Nam được chuẩn hóa về đầu `0`, name/address được trim và gộp whitespace. POST luôn tạo `ACTIVE`; PUT thay thế đầy đủ dữ liệu.
+
 Lấy danh sách nhà xe:
 
 ```http
 GET /api/admin/operators
 ```
+
+Hỗ trợ `q` tùy chọn để tìm substring trong name/address/phone/email và `status=ACTIVE|INACTIVE`. `q` sau chuẩn hóa dài tối đa 100 ký tự. Kết quả không phân trang, sắp xếp theo name rồi id.
 
 Tạo nhà xe:
 
@@ -484,20 +488,26 @@ Tạo nhà xe:
 POST /api/admin/operators
 ```
 
+Request gồm `name`, `address`, `phone`, `email`; không chấp nhận `status`. Thành công trả `201`, `OperatorResponse` và header `Location: /api/admin/operators/{id}`.
+
 Cập nhật nhà xe:
 
 ```http
 PUT /api/admin/operators/{operatorId}
 ```
 
+PUT bắt buộc đủ `name`, `address`, `phone`, `email`, `status`. Chuyển sang `INACTIVE` trả `409 OPERATOR_IN_USE` nếu còn Vehicle ACTIVE/MAINTENANCE hoặc Trip SCHEDULED/IN_PROGRESS. Không cascade trạng thái.
+
 **Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/operators/{operatorId}`. Đối với nhà xe không còn hoạt động, ưu tiên cập nhật `status = INACTIVE` bằng API PUT, thay vì xóa bản ghi có phương tiện liên kết.
 
 ### 4.6.3. Vehicle Management
 
+Vehicle Management đã triển khai. Biển số được uppercase/xóa whitespace và unique; `vehicleType` được trim/gộp whitespace. POST luôn tạo `ACTIVE`. Operator phải `ACTIVE` khi tạo, chuyển nhà xe hoặc đưa Vehicle sang `ACTIVE/MAINTENANCE`.
+
 Lấy danh sách xe:
 
 ```http
-GET /api/admin/vehicles
+GET /api/admin/vehicles?q={optional}&operatorId={optional}&status={optional}
 ```
 
 Tạo xe:
@@ -506,15 +516,21 @@ Tạo xe:
 POST /api/admin/vehicles
 ```
 
+Request gồm `operatorId`, `licensePlate`, `vehicleType`, `seatCapacity`; không nhận `status`. Thành công trả `201`, VehicleResponse chứa Operator summary và header `Location: /api/admin/vehicles/{id}`. Biển số trùng trả `409 VEHICLE_ALREADY_EXISTS`.
+
 Cập nhật xe:
 
 ```http
 PUT /api/admin/vehicles/{vehicleId}
 ```
 
+PUT bắt buộc đủ bốn trường trên và `status`. Khi Vehicle đã có Trip, không được đổi Operator, biển số hoặc loại xe (`409 VEHICLE_IDENTITY_LOCKED`). Thay đổi capacity hoặc chuyển từ ACTIVE sang INACTIVE/MAINTENANCE bị chặn nếu còn Trip SCHEDULED/IN_PROGRESS (`409 VEHICLE_IN_USE`).
+
 **Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/vehicles/{vehicleId}`. Ưu tiên quản lý `status` (`ACTIVE`, `INACTIVE`, `MAINTENANCE`) và không làm mất quan hệ với Trip hoặc Booking lịch sử. Cần kiểm tra các Trip đang hoạt động trước khi thay đổi xe hoặc sức chứa.
 
 ### 4.6.4. Location Management
+
+Location Management đã triển khai. Chuỗi đầu vào được trim và gộp khoảng trắng; bộ ba `name`, `province`, `address` là duy nhất không phân biệt hoa/thường. Location đã được Route tham chiếu vẫn được phép cập nhật và giữ nguyên ID. Không có DELETE hoặc status trong Phase 1.
 
 Lấy danh sách địa điểm:
 
@@ -522,11 +538,15 @@ Lấy danh sách địa điểm:
 GET /api/admin/locations
 ```
 
+Hỗ trợ query parameter `q` tùy chọn, tìm substring không phân biệt hoa/thường trên tên, tỉnh/thành và địa chỉ. `q` sau chuẩn hóa dài tối đa 100 ký tự. Kết quả không phân trang, sắp xếp theo `province`, `name`, `id`.
+
 Tạo địa điểm:
 
 ```http
 POST /api/admin/locations
 ```
+
+Request bắt buộc đủ `name`, `province`, `address`. Thành công trả `201`, `LocationResponse` và header `Location: /api/admin/locations/{id}`. Bản ghi trùng trả `409 LOCATION_ALREADY_EXISTS`.
 
 Cập nhật địa điểm:
 
@@ -534,14 +554,26 @@ Cập nhật địa điểm:
 PUT /api/admin/locations/{locationId}
 ```
 
+PUT thay thế đầy đủ ba trường và trả `200`. Location không tồn tại trả `404`.
+
 **Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/locations/{locationId}` vì Location có thể đang được các Route tham chiếu. Bảng `locations` hiện chưa có cột `status`; không giả định có thể vô hiệu hóa Location bằng `ACTIVE/INACTIVE` nếu chưa bổ sung thiết kế/schema.
 
+API discovery công khai phục vụ client lấy ID cho Trip search:
+
+```http
+GET /api/locations?q={optional}
+```
+
+Endpoint này không yêu cầu JWT, dùng cùng filter, sort và `LocationResponse` đầy đủ như danh sách Admin.
+
 ### 4.6.5. Route Management
+
+Route Management đã triển khai. Cặp có hướng `origin → destination` là duy nhất; chiều ngược lại được phép. POST luôn tạo `ACTIVE`. Route đã có Trip không được đổi hai đầu; chuyển sang `INACTIVE` bị chặn nếu còn Trip `SCHEDULED` hoặc `IN_PROGRESS`.
 
 Lấy danh sách tuyến:
 
 ```http
-GET /api/admin/routes
+GET /api/admin/routes?originId={optional}&destinationId={optional}&status={optional}
 ```
 
 Tạo tuyến:
@@ -550,11 +582,15 @@ Tạo tuyến:
 POST /api/admin/routes
 ```
 
+Request bắt buộc `originId`, `destinationId`, `estimatedDurationMinutes`; không nhận `status`. Thành công trả `201`, RouteResponse chứa đầy đủ hai Location và header `Location: /api/admin/routes/{id}`. Cặp trùng trả `409 ROUTE_ALREADY_EXISTS`.
+
 Cập nhật tuyến:
 
 ```http
 PUT /api/admin/routes/{routeId}
 ```
+
+PUT thay thế đầy đủ `originId`, `destinationId`, `estimatedDurationMinutes`, `status`. Đổi hai đầu Route đã có Trip trả `409 ROUTE_ENDPOINTS_LOCKED`; ngừng Route còn Trip vận hành trả `409 ROUTE_IN_USE`.
 
 **Thay đổi so với thiết kế ban đầu:** Hoãn `DELETE /api/admin/routes/{routeId}`. Ưu tiên chuyển Route sang `INACTIVE` qua API PUT khi không còn khai thác; không xóa lịch sử chuyến xe sử dụng tuyến đó.
 

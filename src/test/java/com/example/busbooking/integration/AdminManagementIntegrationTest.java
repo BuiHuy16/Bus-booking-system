@@ -74,7 +74,7 @@ class AdminManagementIntegrationTest {
         return jdbc.queryForObject("""
             INSERT INTO vehicles(operator_id,license_plate,vehicle_type,seat_capacity,status)
             VALUES (?, ?, 'SLEEPER', ?, 'ACTIVE') RETURNING id
-            """, Long.class, operator, UUID.randomUUID().toString().substring(0, 18), capacity);
+            """, Long.class, operator, UUID.randomUUID().toString().substring(0, 18).toUpperCase(), capacity);
     }
 
     String token(Long id) { return "Bearer " + jwt.issue(id).value(); }

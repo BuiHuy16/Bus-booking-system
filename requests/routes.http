@@ -1,0 +1,29 @@
+@baseUrl = http://localhost:8085
+@adminToken = REPLACE_WITH_ADMIN_OR_SUPER_ADMIN_JWT
+
+### List/filter transport routes
+GET {{baseUrl}}/api/admin/routes?originId=1&destinationId=2&status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Create an active transport route
+POST {{baseUrl}}/api/admin/routes
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "originId": 1,
+  "destinationId": 2,
+  "estimatedDurationMinutes": 120
+}
+
+### Replace route details or lifecycle status
+PUT {{baseUrl}}/api/admin/routes/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "originId": 1,
+  "destinationId": 2,
+  "estimatedDurationMinutes": 150,
+  "status": "ACTIVE"
+}

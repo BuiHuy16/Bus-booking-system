@@ -1,6 +1,6 @@
 # 2. Thiết kế Database
 
-**Hiện hành trên nhánh auth:** Các bảng `roles`, `users` và `email_verifications` được triển khai qua migration V9–V11, với ba vai trò USER/ADMIN/SUPER_ADMIN. Xác thực email bằng OTP được bổ sung tại V10; trạng thái xác thực lưu ở `users.email_verified`, còn thông tin thử thách xác thực lưu trong `email_verifications`. V1–V8 hiện là các file migration rỗng được giữ trong lịch sử Flyway; các bảng nghiệp vụ khác trong ERD vẫn là **thiết kế dự kiến, chưa triển khai trên nhánh auth**. Chi tiết nằm ở mục 2.7, 2.8 và phần cập nhật auth phase 4; mục 2.7 ghi lại quyết định lịch sử ở ngày 1.
+**Hiện trạng repository:** V1–V11 tạo đầy đủ schema Role/User, Operator, Location, Vehicle, Route, Trip, Booking và email verification. V12 chuẩn hóa Location. V13 chuẩn hóa Bus Operator. V14 bảo đảm identity của Route. V15 chuẩn hóa Vehicle và thêm index cho quan hệ Operator–Vehicle–Trip. Flyway migrations là nguồn sự thật của schema; các ghi chú phase cũ phía dưới chỉ có giá trị lịch sử.
 
 ## 2.1. Tổng quan Database
 
@@ -177,6 +177,8 @@ Lưu thông tin các nhà xe.
 | `status`     | VARCHAR(20)  | Trạng thái    |
 | `created_at` | TIMESTAMP    | Thời điểm tạo |
 
+Từ V13, name/address được trim và gộp whitespace, email lưu lowercase, phone dùng dạng Việt Nam chuẩn hóa. Name và email có unique index riêng; migration dừng và rollback nếu dữ liệu cũ xung đột hoặc không hợp lệ, không tự thay đổi `vehicles.operator_id`.
+
 ---
 
 ### 2.3.4. `locations`
@@ -189,6 +191,8 @@ Lưu các địa điểm được sử dụng làm điểm đi hoặc điểm đ
 | `name`     | VARCHAR(100) | Tên địa điểm   |
 | `province` | VARCHAR(100) | Tỉnh/thành phố |
 | `address`  | VARCHAR(255) | Địa chỉ        |
+
+Từ V12, ba chuỗi phải ở dạng đã trim/gộp whitespace. Bộ ba `name`, `province`, `address` là duy nhất khi so sánh không phân biệt hoa/thường. Migration dừng và rollback nếu dữ liệu cũ xung đột; không tự xóa hoặc đổi khóa ngoại Route.
 
 Ví dụ:
 
@@ -214,6 +218,8 @@ Lưu thông tin phương tiện thuộc các nhà xe.
 | `status`        | VARCHAR(20) | Trạng thái             |
 | `created_at`    | TIMESTAMP   | Thời điểm tạo          |
 
+Từ V15, biển số được uppercase và xóa whitespace; giá trị sau chuẩn hóa là duy nhất toàn hệ thống. `vehicle_type` được trim và gộp whitespace. Migration dừng và rollback nếu dữ liệu cũ tạo collision biển số, không tự gộp Vehicle vì Trip có thể đang tham chiếu.
+
 ---
 
 ### 2.3.6. `routes`
@@ -234,6 +240,8 @@ Hà Nội → Lạng Sơn
 | `destination_id`             | BIGINT      | FK đến `locations`          |
 | `estimated_duration_minutes` | INT         | Thời gian di chuyển dự kiến |
 | `status`                     | VARCHAR(20) | Trạng thái tuyến            |
+
+Từ V14, cặp có hướng `(origin_id, destination_id)` là duy nhất; tuyến chiều ngược lại là một Route khác. Migration dừng và rollback nếu dữ liệu cũ có cặp trùng, không tự gộp Route vì có thể làm thay đổi các Trip đang tham chiếu. Route đã có Trip không được thay đổi hai đầu tuyến ở tầng nghiệp vụ.
 
 ---
 
@@ -629,7 +637,7 @@ Trong Pha 1, hệ thống không thực hiện tối ưu hóa database ở mức
 
 ## 2.7. Quyết định triển khai Role/User ngày 1 (lịch sử, bổ sung ở 2.8/phase 4)
 
-- Migration thực tế là `V9__create_auth_roles_and_users.sql`; V1–V8 giữ nguyên để không thay checksum lịch sử. Chưa triển khai các bảng nghiệp vụ còn lại trên nhánh auth.
+- Ghi chú lịch sử của nhánh auth từng dùng migration `V9__create_auth_roles_and_users.sql` và giữ V1–V8 rỗng. Trạng thái này không còn áp dụng cho repository hiện tại; schema thực tế được xác định bởi V1–V13 trong source.
 
 - Tại thời điểm ngày 1, Role lưu USER/ADMIN, mỗi user có một role qua `role_id`; trạng thái user là ACTIVE/INACTIVE, default tại database là ACTIVE. Role SUPER_ADMIN được bổ sung về sau tại V11.
 

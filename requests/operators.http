@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8085
+@adminToken = REPLACE_WITH_ADMIN_OR_SUPER_ADMIN_JWT
+
+### List/filter operators
+GET {{baseUrl}}/api/admin/operators?q=phương trang&status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Create active operator
+POST {{baseUrl}}/api/admin/operators
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Nhà xe Phương Trang",
+  "address": "TP. Hồ Chí Minh",
+  "phone": "+84901234567",
+  "email": "contact@futa.vn"
+}
+
+### Replace operator
+PUT {{baseUrl}}/api/admin/operators/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Nhà xe Phương Trang",
+  "address": "TP. Hồ Chí Minh",
+  "phone": "0901234567",
+  "email": "contact@futa.vn",
+  "status": "ACTIVE"
+}

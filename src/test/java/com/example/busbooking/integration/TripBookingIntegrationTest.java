@@ -71,7 +71,7 @@ class TripBookingIntegrationTest {
         vehicleId = jdbc.queryForObject("""
                 INSERT INTO vehicles (operator_id, license_plate, vehicle_type, seat_capacity, status)
                 VALUES (?, ?, 'SLEEPER', 10, 'ACTIVE') RETURNING id
-                """, Long.class, operatorId, "T-" + suffix.substring(0, Math.min(17, suffix.length())));
+                """, Long.class, operatorId, ("T-" + suffix.substring(0, Math.min(17, suffix.length()))).toUpperCase());
         tripId = insertTrip(LocalDateTime.of(2026, 10, 25, 8, 0), 4, "SCHEDULED");
     }
 

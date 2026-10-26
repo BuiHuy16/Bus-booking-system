@@ -1,3 +1,11 @@
 package com.example.busbooking.domain.model;
 
-public record Route(Long id, com.example.busbooking.domain.enums.RouteStatus status) {}
+import com.example.busbooking.domain.enums.RouteStatus;
+
+public record Route(
+        Long id,
+        Location origin,
+        Location destination,
+        int estimatedDurationMinutes,
+        RouteStatus status) {
+}

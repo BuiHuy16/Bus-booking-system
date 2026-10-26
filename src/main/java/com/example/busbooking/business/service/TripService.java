@@ -99,9 +99,11 @@ public class TripService {
                 || command.price().compareTo(new java.math.BigDecimal("9999999999.99")) > 0) {
             throw new BusinessException("Invalid trip times, price or references");
         }
-        var route = routeRepository.findById(command.routeId())
+        // Serialize trip assignment with route endpoint/status changes.
+        var route = routeRepository.findByIdForUpdate(command.routeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Route not found with id: " + command.routeId()));
-        Vehicle vehicle = vehicleRepository.findById(command.vehicleId())
+        // Serialize trip assignment with vehicle capacity/status/identity changes.
+        Vehicle vehicle = vehicleRepository.findByIdForUpdate(command.vehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found with id: " + command.vehicleId()));
         if (route.status() != RouteStatus.ACTIVE || vehicle.status() != VehicleStatus.ACTIVE) {
             throw new BusinessException("Route and vehicle must be active");

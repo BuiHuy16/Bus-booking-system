@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8085
+@adminToken = REPLACE_WITH_ADMIN_OR_SUPER_ADMIN_JWT
+
+### Public location discovery
+GET {{baseUrl}}/api/locations?q=Hà Nội
+
+### Admin list
+GET {{baseUrl}}/api/admin/locations
+Authorization: Bearer {{adminToken}}
+
+### Create location
+POST {{baseUrl}}/api/admin/locations
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Bến xe Mỹ Đình",
+  "province": "Hà Nội",
+  "address": "20 Phạm Hùng, Mỹ Đình 2, Nam Từ Liêm"
+}
+
+### Replace location
+PUT {{baseUrl}}/api/admin/locations/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Bến xe Mỹ Đình",
+  "province": "Hà Nội",
+  "address": "20 Phạm Hùng, Mỹ Đình 2, Nam Từ Liêm"
+}

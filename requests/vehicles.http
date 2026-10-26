@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8085
+@adminToken = REPLACE_WITH_ADMIN_OR_SUPER_ADMIN_JWT
+
+### List/filter vehicles
+GET {{baseUrl}}/api/admin/vehicles?q=giường&operatorId=1&status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Create an active vehicle
+POST {{baseUrl}}/api/admin/vehicles
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "operatorId": 1,
+  "licensePlate": "51a 123.45",
+  "vehicleType": "Giường nằm",
+  "seatCapacity": 40
+}
+
+### Replace vehicle details or lifecycle status
+PUT {{baseUrl}}/api/admin/vehicles/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "operatorId": 1,
+  "licensePlate": "51A123.45",
+  "vehicleType": "Giường nằm",
+  "seatCapacity": 40,
+  "status": "ACTIVE"
+}
