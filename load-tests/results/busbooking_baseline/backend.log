@@ -1,0 +1,66 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.8)
+
+2026-10-27T15:42:31.586Z  INFO 2898 --- [busbooking] [           main] c.e.busbooking.BusBookingApplication     : Starting BusBookingApplication v0.0.1-SNAPSHOT using Java 21.0.13 with PID 2898 (/kaggle/input/datasets/conghuybui/busbooking-jar-file/busbooking-0.0.1-SNAPSHOT.jar started by root in /kaggle/working)
+2026-10-27T15:42:31.594Z  INFO 2898 --- [busbooking] [           main] c.e.busbooking.BusBookingApplication     : The following 1 profile is active: "dev"
+2026-10-27T15:42:33.892Z  INFO 2898 --- [busbooking] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-27T15:42:34.029Z  INFO 2898 --- [busbooking] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 120 ms. Found 8 JPA repository interfaces.
+2026-10-27T15:42:35.134Z  INFO 2898 --- [busbooking] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8085 (http)
+2026-10-27T15:42:35.160Z  INFO 2898 --- [busbooking] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-27T15:42:35.161Z  INFO 2898 --- [busbooking] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-27T15:42:35.203Z  INFO 2898 --- [busbooking] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3464 ms
+2026-10-27T15:42:35.657Z  INFO 2898 --- [busbooking] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-10-27T15:42:36.214Z  INFO 2898 --- [busbooking] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@3b30eec5
+2026-10-27T15:42:36.216Z  INFO 2898 --- [busbooking] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-10-27T15:42:36.265Z  INFO 2898 --- [busbooking] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:5432/busbooking_kaggle (PostgreSQL 16.15)
+2026-10-27T15:42:36.340Z  INFO 2898 --- [busbooking] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."flyway_schema_history" does not exist yet
+2026-10-27T15:42:36.352Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 16 migrations (execution time 00:00.046s)
+2026-10-27T15:42:36.383Z  INFO 2898 --- [busbooking] [           main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."flyway_schema_history" ...
+2026-10-27T15:42:36.510Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-10-27T15:42:36.524Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "1 - create roles"
+2026-10-27T15:42:36.600Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "2 - create users"
+2026-10-27T15:42:36.680Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "3 - create bus operators"
+2026-10-27T15:42:36.734Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "4 - create locations"
+2026-10-27T15:42:36.781Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "5 - create vehicles"
+2026-10-27T15:42:36.836Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "6 - create routes"
+2026-10-27T15:42:36.886Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "7 - create trips"
+2026-10-27T15:42:36.932Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "8 - create bookings"
+2026-10-27T15:42:36.989Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "9 - create email verifications"
+2026-10-27T15:42:37.045Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "10 - add email verification"
+2026-10-27T15:42:37.068Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "11 - add single super admin"
+2026-10-27T15:42:37.105Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "12 - normalize locations"
+2026-10-27T15:42:37.136Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "13 - normalize bus operators"
+2026-10-27T15:42:37.191Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "14 - enforce route identity"
+2026-10-27T15:42:37.249Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "15 - normalize vehicles"
+2026-10-27T15:42:37.290Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "16 - defer optional catalog indexes"
+2026-10-27T15:42:37.324Z  INFO 2898 --- [busbooking] [           main] o.f.core.internal.command.DbMigrate      : Successfully applied 16 migrations to schema "public", now at version v16 (execution time 00:00.450s)
+2026-10-27T15:42:37.515Z  INFO 2898 --- [busbooking] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-10-27T15:42:37.622Z  INFO 2898 --- [busbooking] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.24.Final
+2026-10-27T15:42:38.478Z  INFO 2898 --- [busbooking] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-10-27T15:42:38.649Z  INFO 2898 --- [busbooking] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://127.0.0.1:5432/busbooking_kaggle]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.15
+	Default catalog/schema: busbooking_kaggle/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-10-27T15:42:40.196Z  INFO 2898 --- [busbooking] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-10-27T15:42:40.255Z  INFO 2898 --- [busbooking] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-10-27T15:42:40.403Z  INFO 2898 --- [busbooking] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-10-27T15:42:44.747Z  INFO 2898 --- [busbooking] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8085 (http) with context path '/'
+2026-10-27T15:42:44.768Z  INFO 2898 --- [busbooking] [           main] c.e.busbooking.BusBookingApplication     : Started BusBookingApplication in 14.105 seconds (process running for 15.28)
+2026-10-27T15:42:45.570Z  INFO 2898 --- [busbooking] [nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-27T15:42:45.570Z  INFO 2898 --- [busbooking] [nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-27T15:42:45.573Z  INFO 2898 --- [busbooking] [nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
