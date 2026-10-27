@@ -21,12 +21,15 @@ Hệ thống tập trung giải quyết các vấn đề chính sau:
 * Người dùng cần có khả năng theo dõi các booking đã thực hiện.
 * Quản trị viên cần có khả năng quản lý dữ liệu của hệ thống.
 
-## 2. Phân chia công việc
+## 2. Chức năng và phạm vi
 
-| Thành viên           | Công việc                                                           |
-| -------------------- | ------------------------------------------------------------------- |
-| Nguyễn Văn Huy Hoàng | Auth, Role, User, Operator, Vehicle, Location, Route, Security |
-| Bùi Công Huy         | Trip, Booking, Exception Handling, Test, Swagger/OpenAPI, Docker, Test Kaggle CPU  |
+| Đối tượng | Chức năng chính |
+|---|---|
+| **Khách** | Tìm kiếm/xem chuyến xe, xem địa điểm, đăng ký và xác minh email bằng OTP |
+| **USER** | Đăng nhập, cập nhật hồ sơ, đặt vé, xem lịch sử và hủy booking của mình |
+| **ADMIN** | Quản lý nhà xe, phương tiện, địa điểm, tuyến đường, chuyến xe và tra cứu booking |
+| **SUPER_ADMIN** | Có quyền của ADMIN và được nâng/hạ vai trò `USER` ↔ `ADMIN` |
+
 
 ## 3. Công nghệ sử dụng
 
@@ -39,84 +42,60 @@ Hệ thống tập trung giải quyết các vấn đề chính sau:
 
 ## 4. Kiến trúc hệ thống
 
-Áp dụng kiến trúc phân lớp:
+Ứng dụng là **modular monolith**, tổ chức theo **Layered Architecture kết hợp Ports & Adapters**. Business định nghĩa các interface (*ports*); tầng hạ tầng triển khai các adapter để làm việc với database, bảo mật và email.
 
-`API → Business → Data Access → PostgreSQL`
-
-Các lớp được phân chia trách nhiệm rõ ràng, hỗ trợ bảo trì và kiểm thử độc lập.
-
-## 5. Tài liệu project
-
-Tài liệu đặc tả chi tiết được lưu tại thư mục [`docs/`](docs/).
-
-- [`01-overview-and-requirements.md`](docs/01-overview-and-requirements.md)
-- [`02-database-design.md`](docs/02-database-design.md)
-- [`03-system-archiecture.md`](docs/03-system-archiecture.md)
-- [`04-api-design.md`](docs/04-api-design.md)
-- [`05-source-code-design.md`](docs/05-source-code-design.md)
-- [`06-quality-attributes.md`](docs/06-quality-attributes.md)
-- [Auth — Chức năng, API và hướng dẫn sử dụng](docs/07-auth-guide.md)
-
-## 6. Auth đã hoàn thiện
-
-Phụ trách: **Nguyễn Văn Huy Hoàng**, nhánh `feature/hoang`.
-
-- Đăng ký USER, xác minh OTP email, gửi lại mã và đăng nhập JWT.
-- Đọc/cập nhật profile; số điện thoại Việt Nam chỉ dùng liên hệ.
-- Ba role USER/ADMIN/SUPER_ADMIN; chỉ một super admin và chỉ super được nâng/hạ USER ↔ ADMIN.
-- Security stateless, JSON lỗi thống nhất, rate limit, CORS và Swagger bearerAuth.
-
-Tài liệu duy nhất cho phần Auth: [07-auth-guide.md](docs/07-auth-guide.md). Tài liệu này thay thế docs 07–19 cũ, có contract API, cấu hình môi trường, bootstrap, demo, lệnh kiểm thử và phần bàn giao cho Huy.
-
-Yêu cầu JDK 21 đầy đủ, PostgreSQL test riêng và Mailpit khi kiểm thử SMTP thật. Ứng dụng mặc định cổng **8085**; Swagger tại http://localhost:8085/swagger-ui/index.html. `.env.example` chỉ là mẫu, Spring Boot không tự nạp `.env`.
-
-Sau khi cấu hình biến môi trường theo tài liệu:
-
-```bash
-bash mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```mermaid
+flowchart TB
+    C[Client / Postman] --> S[Spring Security / JWT]
+    S --> A[API: Controller / DTO]
+    A --> B[Business Service]
+    B --> D[Domain Model]
+    B --> P[Repository / Security / Notification Ports]
+    I[Infrastructure Adapters] -.->|implements| P
+    I --> DB[(PostgreSQL)]
+    I --> E[SMTP / Mailpit]
 ```
 
-Kiểm thử mặc định và smoke opt-in:
+| Nhóm | Công nghệ |
+|---|---|
+| Backend | Java 21, Spring Boot, Maven Wrapper |
+| Dữ liệu | PostgreSQL, Spring Data JPA, Flyway (V1–V16) |
+| Bảo mật | Spring Security, JWT, BCrypt, email OTP |
+| API & kiểm thử | REST/JSON, Springdoc OpenAPI/Swagger, JUnit, Mockito, Locust |
+| Môi trường | Docker cho các dịch vụ hỗ trợ/đóng gói khi được cấu hình |
 
-```bash
-bash mvnw -B clean verify
-# Cần thêm Mailpit; chạy tuần tự với các suite dùng cùng database:
-bash mvnw -B '-Dtest=*Test,*Tests,*IT' clean verify
-```
+## 5. Chạy nhanh trên Windows
 
-Nghiệm thu Auth trước đây: **151 test pass sau sửa review (148 test mặc định + 3 smoke opt-in)**. Sau khi tích hợp Trip/Booking/Admin Management, Locations và BusOperators, default suite trước G3 có **249 test**. G3–G4 bổ sung Transport Routes, Vehicles API và migrations V14–V15. Các request mẫu ở [requests/](requests/).
+**Yêu cầu:** JDK 21, PostgreSQL đang hoạt động, SMTP thử nghiệm (ví dụ Mailpit) và Maven Wrapper có sẵn trong repository.
 
-## 7. Locations đã hoàn thiện
+1. Tạo database và tài khoản PostgreSQL dành cho BusBooking; kiểm tra cổng host đang sử dụng.
+2. Khai báo biến môi trường `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `EMAIL_OTP_SECRET` và các biến `SMTP_*` theo [`06-running-guide.md`](docs/06-running-guide.md). Hai secret phải khác nhau; **Spring Boot không tự nạp file `.env` khi chạy trực tiếp**.
+3. Mở PowerShell tại thư mục gốc và chạy:
 
-- Public discovery: `GET /api/locations`, hỗ trợ tìm kiếm `q`.
-- Admin management: `GET`, `POST`, `PUT /api/admin/locations`.
-- Chuỗi được trim/gộp whitespace; bộ ba tên, tỉnh/thành, địa chỉ là duy nhất không phân biệt hoa/thường.
-- Không xóa vật lý và không thêm trạng thái Location trong Phase 1.
-- Migration V12 và request mẫu nằm tại `src/main/resources/db/migration/` và `requests/locations.http`.
+   ```powershell
+   $env:SPRING_PROFILES_ACTIVE = "dev"
+   .\mvnw.cmd spring-boot:run
+   ```
 
-## 8. BusOperators đã hoàn thiện
+4. Khi backend đã khởi động, truy cập:
+   - **Swagger UI:** http://localhost:8085/swagger-ui/index.html
+   - **OpenAPI JSON:** http://localhost:8085/v3/api-docs
 
-- Admin management: `GET`, `POST`, `PUT /api/admin/operators`, hỗ trợ filter `q` và `status`.
-- Name/email unique; email, phone và whitespace được chuẩn hóa.
-- POST mặc định ACTIVE; không cho chuyển INACTIVE khi còn Vehicle/Trip vận hành và không cascade dữ liệu.
-- Migration V13 và request mẫu nằm tại `src/main/resources/db/migration/` và `requests/operators.http`.
+**Lưu ý:** Các URL trên dùng cấu hình local cổng `8085`, Swagger phải được bật. Cách chạy bằng Docker Compose (nếu bản bàn giao có cấu hình), thiết lập PostgreSQL/Mailpit, tạo secret và xử lý lỗi được hướng dẫn trong [Running Guide](docs/06-running-guide.md).
 
-## 9. Transport Routes đã hoàn thiện
+## 6. API và kiểm thử
 
-- Admin management: `GET`, `POST`, `PUT /api/admin/routes`; hỗ trợ filter `originId`, `destinationId`, `status`.
-- Cặp điểm đi/đến có hướng là duy nhất; POST mặc định `ACTIVE`.
-- Không đổi hai đầu Route đã có Trip; không ngừng Route còn Trip `SCHEDULED`/`IN_PROGRESS`.
-- Migration V14 và request mẫu nằm tại `src/main/resources/db/migration/` và `requests/routes.http`.
+- Danh sách đầy đủ: [API Design](docs/04-api-design.md).
+- **Kiểm thử:** Unit test và integration test bằng JUnit/Mockito. Chạy `.\mvnw.cmd test` sau khi chuẩn bị **database test riêng** theo Running Guide.
+- **Load test baseline (Kaggle CPU, Locust):** tại 20 người dùng ảo, GET Trip đạt khoảng **47,83 RPS** và POST Booking **46,84 RPS**, không ghi nhận lỗi Locust ở hai lượt đo. Đây là kết quả của môi trường thử nghiệm, **không phải cam kết hiệu năng tối đa**. Xem [báo cáo kiểm thử tải](load-tests/README.md).
 
-## 10. Vehicles đã hoàn thiện
+## 7. Tài liệu project
 
-- Admin management: `GET`, `POST`, `PUT /api/admin/vehicles`; hỗ trợ `q`, `operatorId`, `status`.
-- Biển số uppercase/xóa whitespace và unique; POST mặc định `ACTIVE`.
-- Khóa thông tin nhận diện sau khi có Trip; bảo vệ capacity/status khi còn Trip vận hành.
-- Migration V15 và request mẫu nằm tại `src/main/resources/db/migration/` và `requests/vehicles.http`.
-
-Kiểm thử riêng toàn bộ bốn module dữ liệu nền tảng và workflow liên kết:
-
-```bash
-bash mvnw -B '-Dtest=LocationManagementIntegrationTest,OperatorManagementIntegrationTest,RouteManagementIntegrationTest,VehicleManagementIntegrationTest,CoreCatalogWorkflowIntegrationTest' test
-```
+| Tài liệu | Nội dung |
+|---|---|
+| [01 — Overview & Requirements](docs/01-overview-and-requirements.md) | Bài toán, đối tượng sử dụng, yêu cầu và nghiệp vụ |
+| [02 — Database Design](docs/02-database-design.md) | ERD, bảng dữ liệu, ràng buộc và migrations |
+| [03 — System Architecture](docs/03-system-architecture.md) | Các tầng, thành phần và hướng phụ thuộc |
+| [04 — API Design](docs/04-api-design.md) | 32 endpoint, request/response và phân quyền |
+| [05 — Source Code Design](docs/05-source-code-design.md) | Package, service, port, adapter và kiểm thử |
+| [06 — Running Guide](docs/06-running-guide.md) | Cài đặt, cấu hình, chạy và khắc phục lỗi |

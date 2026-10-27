@@ -1,606 +1,226 @@
 # 3. Kiến trúc hệ thống
 
-## 3.1. Tổng quan kiến trúc
 
-Hệ thống đặt vé xe khách được xây dựng theo kiến trúc phân tầng (Layered Architecture), trong đó các thành phần được tổ chức thành các tầng có trách nhiệm riêng biệt.
+## 3.1. Tổng quan
 
-Kiến trúc tổng quát:
+BusBooking là backend hỗ trợ quản lý tài khoản, xác thực email, danh mục nhà xe/địa điểm/phương tiện/tuyến đường, tìm kiếm chuyến xe và đặt vé. Ứng dụng được xây dựng bằng **Java 21, Spring Boot**, giao tiếp qua **REST/JSON**, lưu trữ trên **PostgreSQL** và quản lý thay đổi schema bằng **Flyway**.
 
-```text
-┌──────────────────────────────────────────────┐
-│                    CLIENT                    │
-│             Web / Mobile / Postman           │
-└──────────────────────┬───────────────────────┘
-                       │
-                    HTTP/JSON
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│                  API LAYER                   │
-│                                              │
-│  AuthController                              │
-│  UserController                              │
-│  TripController                              │
-│  BookingController                           │
-│  AdminController                             │
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│               BUSINESS LAYER                 │
-│                                              │
-│  Authentication                              │
-│  User Management                             │
-│  Trip Management                             │
-│  Booking Management                          │
-│  Business Rules                              │
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│              DATA ACCESS LAYER               │
-│                                              │
-│  UserRepository                              │
-│  TripRepository                              │
-│  BookingRepository                           │
-│  VehicleRepository                           │
-│  ...                                         │
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│                  DATABASE                    │
-│                 PostgreSQL                   │
-└──────────────────────────────────────────────┘
-```
+Về tổ chức phần mềm, hệ thống kết hợp:
 
-Client giao tiếp với hệ thống thông qua REST API sử dụng JSON.
+- **Kiến trúc phân lớp:** phân chia trách nhiệm thành các lớp tiếp nhận API, xử lý nghiệp vụ và truy cập dữ liệu.
+- **Ports và Adapters:** nghiệp vụ khai báo các *port* (interface) để làm việc với repository, xác thực và gửi thông báo; các lớp hạ tầng cung cấp implementation tương ứng.
 
-API Layer tiếp nhận và xử lý HTTP request, sau đó chuyển yêu cầu đến Business Layer.
-
-Business Layer thực hiện các nghiệp vụ và business rules của hệ thống.
-
-Data Access Layer chịu trách nhiệm giao tiếp với cơ sở dữ liệu thông qua Repository/ORM.
-
-Cách tổ chức này giúp tách biệt trách nhiệm giữa các thành phần và tạo điều kiện thuận lợi cho việc kiểm thử, bảo trì và mở rộng hệ thống.
-
----
-
-## 3.2. Kiểu kiến trúc
-
-Hệ thống sử dụng **kiến trúc phân lớp** kết hợp với mô hình **RESTful API**.
-
-### Kiến trúc phân lớp
-
-Các thành phần được chia thành ba tầng chính:
-
-```text
-API Layer
-    ↓
-Business Layer
-    ↓
-Data Access Layer
-```
-
-Mỗi tầng chỉ đảm nhận trách nhiệm thuộc phạm vi của mình.
-
-### RESTful API
-
-Hệ thống cung cấp REST API để client giao tiếp với backend.
-
-Các đặc điểm chính:
-
-* Sử dụng HTTP.
-* Trao đổi dữ liệu dưới dạng JSON.
-* Sử dụng HTTP methods phù hợp với thao tác.
-* Sử dụng HTTP status codes để biểu diễn kết quả xử lý.
-* API không phụ thuộc vào giao diện người dùng cụ thể.
-
-Ví dụ:
-
-```text
-GET    /api/trips
-POST   /api/bookings
-GET    /api/bookings/my
-DELETE /api/bookings/{id}
-```
-
-### Dependency Direction
-
-Dependency giữa các tầng được tổ chức theo một hướng:
-
-```text
-API
- ↓
-Business
- ↓
-Data Access
- ↓
-Database
-```
-
-Business Layer không trực tiếp phụ thuộc vào HTTP request/response hoặc các API cụ thể của database.
-
----
-
-## 3.3. Layered Architecture
-
-Hệ thống được chia thành ba tầng chính:
-
-```text
-┌────────────────────────────────────┐
-│             API LAYER              │
-│        Controllers / DTOs          │
-└──────────────────┬─────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────┐
-│          BUSINESS LAYER            │
-│      Services / Domain Logic       │
-└──────────────────┬─────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────┐
-│        DATA ACCESS LAYER           │
-│          Repositories              │
-└──────────────────┬─────────────────┘
-                   │
-                   ▼
-              PostgreSQL
-```
-
-### API Layer
-
-Chịu trách nhiệm tiếp nhận request từ client và trả response.
-
-Không nên chứa các business rules phức tạp.
-
-### Business Layer
-
-Chịu trách nhiệm xử lý nghiệp vụ của hệ thống.
-
-Ví dụ:
-
-* Kiểm tra số ghế còn trống.
-* Kiểm tra quyền sở hữu booking.
-* Tạo booking.
-* Cập nhật số ghế.
-* Kiểm tra trạng thái chuyến xe.
-
-Đây là tầng trung tâm của hệ thống.
-
-### Data Access Layer
-
-Chịu trách nhiệm truy cập và thao tác với dữ liệu.
-
-Tầng này sử dụng Repository và ORM để giao tiếp với PostgreSQL.
-
----
-
-## 3.4. Component Diagram
-
-Các component chính của hệ thống:
+Đây là **một ứng dụng backend** được phân tách thành các package. Client có thể là Postman hoặc một giao diện web/mobile sử dụng API; tài liệu này không mặc định frontend đã được triển khai.
 
 ```mermaid
 flowchart TB
+    C["Client: Postman / Web / Mobile"] -->|HTTP / JSON| S["Spring Security / HTTP Filters"]
+    S --> A["API: Controllers, DTOs, DTO Mappers"]
+    A --> B["Business: Services, Commands, Rules"]
+    B --> D["Domain: Models, Enums, Exceptions"]
+    B --> P["Outbound Ports: Repository / Security / Notification"]
+    PA["Persistence Adapters: Spring Data JPA, Mappers"] -.->|implements| P
+    SA["Security Adapters: JWT, BCrypt, HMAC"] -.->|implements| P
+    EA["SMTP Email Adapter"] -.->|implements| P
+    PA --> DB[(PostgreSQL)]
+    EA --> SMTP["SMTP Server / Mailpit (môi trường test)"]
+```
 
-    Client["Client<br/>Web / Mobile / Postman"]
+**Lưu ý:** Sơ đồ trên thể hiện cả luồng tương tác và quan hệ triển khai interface. Các mũi tên `implements` **không** có nghĩa Business phụ thuộc vào lớp adapter.
 
-    subgraph API["API Layer"]
-        AuthController["AuthController"]
-        UserController["UserController"]
-        TripController["TripController"]
-        BookingController["BookingController"]
-        AdminController["AdminController"]
+## 3.2. Các thành phần và trách nhiệm
+
+| Thành phần | Package chính | Vai trò |
+|---|---|---|
+| API | `api/controller`, `api/dto`, `api/mapper`, `api/validation` | Nhận request, xác thực dữ liệu ở ranh giới HTTP, ánh xạ DTO và trả response |
+| Business | `business/service`, `business/command`, `business/result` | Điều phối use case, kiểm tra quy tắc nghiệp vụ, tạo kết quả độc lập với định dạng HTTP |
+| Outbound Ports | `business/port/repository`, `business/port/security`, `business/port/notification` | Định nghĩa các hợp đồng cần dùng từ hạ tầng |
+| Domain | `domain/model`, `domain/enums`, `domain/exception` | Mô hình nghiệp vụ, trạng thái và ngoại lệ nghiệp vụ |
+| Persistence | `data/adapter`, `data/repository`, `data/entity`, `data/mapper` | Hiện thực repository port, truy cập JPA và chuyển đổi domain ↔ entity |
+| Security | `security`, `security/ratelimit` | Xác thực JWT, mã hóa mật khẩu, HMAC OTP, giới hạn tần suất và xử lý lỗi truy cập |
+| Notification | `notification` | Adapter gửi email xác minh qua SMTP |
+| Cross-cutting | `config`, `exception` | Cấu hình ứng dụng, OpenAPI, biểu diễn lỗi HTTP và xử lý exception tập trung |
+| Persistence schema | `src/main/resources/db/migration` | Các migration Flyway cho PostgreSQL (V1–V16 trong cây source được cung cấp) |
+
+### API layer
+
+Các controller hiện có được tổ chức theo nhóm nghiệp vụ:
+
+- **Tài khoản/quyền:** `AuthController`, `UserController`, `RoleManagementController`.
+- **Đọc dữ liệu công khai hoặc theo quyền:** `LocationController`, `TripController`, `BookingController`.
+- **Quản trị:** `AdminBookingController`, `AdminLocationController`, `AdminOperatorController`, `AdminRouteController`, `AdminTripController`, `AdminVehicleController`.
+
+Mỗi controller làm việc với DTO của `api/dto` và mapper của `api/mapper`. **Không có** một `AdminController` chung trong cây source hiện tại; chức năng quản trị được tách theo tài nguyên. Mô tả đường dẫn/HTTP method chi tiết thuộc `04-api-design.md` và file OpenAPI xuất từ ứng dụng.
+
+### Business và Domain
+
+Các service hiện diện trong `business/service` gồm `AuthService`, `EmailVerificationService`, `UserService`, `RoleManagementService`, `BootstrapSuperAdminService`, `OperatorService`, `LocationService`, `VehicleService`, `RouteService`, `TripService`, `BookingService`, cùng các chính sách đầu vào như `AuthInputPolicy` và `OperatorInputPolicy`.
+
+- **Business service** thực hiện luồng use case, phối hợp các port và áp dụng điều kiện nghiệp vụ.
+- **Domain model / enum** biểu diễn `User`, `Operator`, `Vehicle`, `Route`, `Trip`, `Booking` cùng các trạng thái liên quan.
+- **Domain exception** biểu diễn các tình huống nghiệp vụ, ví dụ `InsufficientSeatsException`, `TripConflictException`, `ForbiddenOperationException`, `DuplicateRouteException`.
+
+Những quy tắc như quyền sở hữu booking, số ghế khả dụng hoặc trạng thái chuyến không nên được viết lặp lại trong controller hay repository adapter.
+
+## 3.3. Quy tắc phụ thuộc (Dependency Rule)
+
+Cần phân biệt **luồng gọi lúc chạy** và **phụ thuộc khi biên dịch**:
+
+**Luồng gọi khi xử lý HTTP:**
+
+```text
+Client → Security Filters → Controller → Business Service
+       → Repository Port → Persistence Adapter → Spring Data JPA → PostgreSQL
+```
+
+**Phụ thuộc ở mã nguồn:**
+
+```text
+api/controller  ────────→ business/service
+business/service ───────→ business/port + domain
+
+data/adapter  ─────────→ business/port + domain
+data/repository ────────→ Spring Data JPA
+security, notification → business/port (với các adapter tương ứng)
+```
+
+Ví dụ có thể đối chiếu trong source:
+
+| Vai trò | Class/interface |
+|---|---|
+| Repository port | `business/port/repository/BookingRepository.java` |
+| Implementation | `data/adapter/BookingRepositoryAdapter.java` |
+| Truy cập JPA | `data/repository/SpringDataBookingRepository.java` |
+| Persistence entity | `data/entity/BookingEntity.java` |
+| Mapping | `data/mapper/BookingPersistenceMapper.java` |
+
+`BookingService` sử dụng hợp đồng repository của tầng nghiệp vụ thay vì cần biết trực tiếp cơ chế JPA hoặc PostgreSQL. Cách tách này giúp thay implementation lưu trữ và viết kiểm thử bằng fake/mock repository dễ hơn. Việc tất cả class đều tuân thủ quy tắc này cần được kiểm tra bằng import/dependency thực tế, không thể kết luận chỉ từ cấu trúc thư mục.
+
+## 3.4. Các thành phần chức năng
+
+```mermaid
+flowchart LR
+    subgraph API["HTTP API"]
+        AUTH["Auth / User / Role Controllers"]
+        CAT["Location / Trip Controllers"]
+        BOOK["Booking Controllers"]
+        ADMIN["Admin Resource Controllers"]
     end
 
-    subgraph Business["Business Layer"]
-        AuthService["Authentication Service"]
-        UserService["User Service"]
-        TripService["Trip Service"]
-        BookingService["Booking Service"]
-        AdminService["Admin Service"]
+    subgraph BIZ["Business Services"]
+        AS["Auth / Email Verification / User / Role"]
+        CS["Operator / Location / Vehicle / Route / Trip"]
+        BS["BookingService"]
     end
 
-    subgraph Data["Data Access Layer"]
-        UserRepository["UserRepository"]
-        RoleRepository["RoleRepository"]
-        OperatorRepository["BusOperatorRepository"]
-        VehicleRepository["VehicleRepository"]
-        LocationRepository["LocationRepository"]
-        RouteRepository["RouteRepository"]
-        TripRepository["TripRepository"]
-        BookingRepository["BookingRepository"]
+    subgraph PORTS["Outbound Ports"]
+        RP["Repository Ports"]
+        SP["Password / Token / OTP Ports"]
+        EP["EmailVerificationSender"]
     end
 
-    DB[("PostgreSQL")]
+    AUTH --> AS
+    CAT --> CS
+    BOOK --> BS
+    ADMIN --> CS
+    ADMIN --> BS
+    AS --> RP
+    AS --> SP
+    AS --> EP
+    CS --> RP
+    BS --> RP
 
-    Client --> AuthController
-    Client --> UserController
-    Client --> TripController
-    Client --> BookingController
-    Client --> AdminController
-
-    AuthController --> AuthService
-    UserController --> UserService
-    TripController --> TripService
-    BookingController --> BookingService
-    AdminController --> AdminService
-
-    AuthService --> UserRepository
-    UserService --> UserRepository
-
-    TripService --> TripRepository
-    TripService --> RouteRepository
-    TripService --> VehicleRepository
-    TripService --> LocationRepository
-
-    BookingService --> BookingRepository
-    BookingService --> TripRepository
-
-    AdminService --> UserRepository
-    AdminService --> OperatorRepository
-    AdminService --> VehicleRepository
-    AdminService --> TripRepository
-
-    UserRepository --> DB
-    RoleRepository --> DB
-    OperatorRepository --> DB
-    VehicleRepository --> DB
-    LocationRepository --> DB
-    RouteRepository --> DB
-    TripRepository --> DB
-    BookingRepository --> DB
+    DP["Data Adapters + Spring Data JPA"] -.->|implements| RP
+    XP["Security Implementations"] -.->|implements| SP
+    MP["SmtpEmailVerificationSender"] -.->|implements| EP
+    DP --> PG[(PostgreSQL)]
+    MP --> MAIL["SMTP"]
 ```
 
-Luồng xử lý tổng quát:
+Sơ đồ nhóm các controller/service để dễ nhìn, **không biểu diễn đầy đủ mọi lời gọi giữa từng class**. Ví dụ một Admin Controller có thể dùng service nghiệp vụ tương ứng; không có `AdminService` tổng hợp.
+
+## 3.5. Luồng xử lý nghiệp vụ điển hình
+
+### Đặt vé — `POST /api/bookings`
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant SEC as JWT / Security Filters
+    participant API as BookingController
+    participant BIZ as BookingService
+    participant PORT as Repository Ports
+    participant ADP as Data Adapters / JPA
+    participant DB as PostgreSQL
+
+    Client->>SEC: POST /api/bookings + Bearer token
+    SEC->>API: Request sau khi qua kiểm tra bảo mật
+    API->>BIZ: Dữ liệu yêu cầu đã được chuyển đổi
+    BIZ->>PORT: Tra cứu user / trip / booking theo use case
+    PORT->>ADP: Gọi implementation
+    ADP->>DB: Truy vấn và cập nhật dữ liệu
+    DB-->>ADP: Kết quả
+    ADP-->>PORT: Domain object / kết quả
+    PORT-->>BIZ: Dữ liệu nghiệp vụ
+    BIZ-->>API: Kết quả đặt vé hoặc lỗi nghiệp vụ
+    API-->>Client: JSON + HTTP status
+```
+
+Các điều kiện nghiệp vụ cần được duy trì: chuyến hợp lệ, còn đủ ghế, không vượt sức chứa; khi đặt/hủy vé phải cập nhật số ghế nhất quán. **Chiến lược khóa đồng thời, ranh giới transaction và rollback cụ thể** phải được xác nhận ở implementation/service và các bài integration test; sơ đồ trên không thay thế việc kiểm tra đó.
+
+### Đăng ký và xác thực email
+
+1. `AuthController` nhận yêu cầu; `AuthService` và `EmailVerificationService` xử lý nghiệp vụ tài khoản/xác minh.
+2. Business sử dụng `UserRepository`, `EmailVerificationRepository` và các port mật khẩu/OTP.
+3. `BCryptPasswordHasher` và `HmacVerificationCodeProvider` là các thành phần hiện thực xử lý bảo mật tương ứng.
+4. `SmtpEmailVerificationSender` kết nối tới dịch vụ SMTP; **Mailpit** có thể đóng vai trò SMTP kiểm thử trong môi trường phát triển.
+5. Khi đăng nhập, JWT được cấp và các request tiếp theo được kiểm tra ở tầng Security.
+
+Cây source có `BootstrapSuperAdminService` và `RoleManagementService`; chi tiết điều kiện tạo SUPER_ADMIN, nâng/hạ quyền và quy tắc xác minh email cần tham chiếu API/kiểm thử hiện hành, thay vì suy ra chỉ từ tên class.
+
+## 3.6. Bảo mật và xử lý lỗi
+
+### Authentication & Authorization
+
+- `SecurityConfig` tổ chức các thành phần Spring Security và quy tắc truy cập HTTP.
+- `JwtAuthenticationFilter`, `JwtService` và `CurrentUserLoader` tham gia xử lý request có Bearer token.
+- `BCryptPasswordHasher`, `HmacVerificationCodeProvider` tương ứng với mật khẩu và mã OTP.
+- `security/ratelimit` gồm `AuthRateLimitFilter`, `AuthRequestRateLimiter` và cấu hình liên quan đến giới hạn request xác thực.
+- Role nghiệp vụ được biểu diễn bằng `RoleName`; code hiện có các thành phần quản lý role/SUPER_ADMIN. Quyền truy cập cụ thể phải lấy từ `SecurityConfig` và service tương ứng.
 
 ```text
-Client
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Repository
-  ↓
-PostgreSQL
+Client → HTTP Filters / JWT → Controller → Business Service
+                 │                              │
+                 └── 401 / 403 khi phù hợp      └── kiểm tra quyền sở hữu,
+                                                  trạng thái, quy tắc nghiệp vụ
 ```
 
-Ví dụ với chức năng đặt vé:
+### Exception handling
 
-```text
-POST /api/bookings
-        ↓
-BookingController
-        ↓
-BookingService
-        ↓
- ┌─────────────────────────┐
- │ Kiểm tra user           │
- │ Kiểm tra trip           │
- │ Kiểm tra số ghế         │
- │ Tạo booking             │
- │ Cập nhật số ghế         │
- └────────────┬────────────┘
-              ↓
-      BookingRepository
-              ↓
-         PostgreSQL
+- `domain/exception`: mô tả lỗi nghiệp vụ, không gắn trực tiếp với JSON HTTP.
+- `exception/GlobalExceptionHandler`, `ErrorResponse`, `ApiErrorWriter`: hỗ trợ chuyển lỗi sang phản hồi API.
+- `JsonAuthenticationEntryPoint`, `JsonAccessDeniedHandler` và `ApiExceptionBoundaryFilter`: xử lý một số trường hợp lỗi tại ranh giới Security/filter.
+
+Việc ánh xạ lỗi sang HTTP 400/401/403/404/409 phải căn cứ vào handler thực tế và đặc tả OpenAPI; không nên cố định mã lỗi chỉ từ tên exception.
+
+## 3.7. Kiến trúc dữ liệu và triển khai
+
+### Database
+
+Ứng dụng sử dụng **PostgreSQL**; phần `data` sử dụng **Spring Data JPA** và các adapter để giao tiếp với cơ sở dữ liệu. `Flyway` lưu lịch sử thay đổi schema trong `src/main/resources/db/migration/` với các file V1–V16 theo cây source được cung cấp.
+
+Tài liệu thiết kế bảng, khóa ngoại, constraint và index: [`02-database-design.md`](02-database-design.md).
+
+### Môi trường chạy
+
+```mermaid
+flowchart LR
+    C["HTTP Client"] --> APP["Spring Boot Backend"]
+    APP -->|JDBC| PG[(PostgreSQL)]
+    APP -->|SMTP| SMTP["SMTP server / Mailpit khi test"]
 ```
 
----
+- **Chạy ứng dụng:** có thể thực thi Spring Boot trên máy hoặc trong container; chi tiết port, biến môi trường, health check và các service của Docker Compose phải lấy từ cấu hình triển khai thực tế.
+- **Docker/Compose:** phục vụ đóng gói và khởi chạy môi trường phát triển/đánh giá. Không mặc định mọi thành phần ở sơ đồ đều có container riêng.
+- **Kaggle CPU:** bài kiểm thử tải Pha 1 chạy Java, PostgreSQL và Locust trong notebook, **không phải sơ đồ triển khai Docker production**. Xem [`../load-tests/README.md`](../load-tests/README.md) để biết baseline.
 
-## 3.5. Layer Responsibilities
-
-### API Layer
-
-API Layer là điểm giao tiếp giữa client và hệ thống.
-
-#### Trách nhiệm
-
-* Tiếp nhận HTTP request.
-* Validate các input cơ bản.
-* Chuyển request data thành đối tượng phù hợp.
-* Gọi Business Layer.
-* Chuyển kết quả nghiệp vụ thành HTTP response.
-* Xử lý các HTTP status code phù hợp.
-* Cung cấp REST endpoint.
-
-Ví dụ:
-
-```text
-BookingController
-    ↓
-POST /api/bookings
-    ↓
-BookingService.createBooking(...)
-```
-
-#### Không nên thực hiện
-
-API Layer không nên chứa:
-
-* Business rules phức tạp.
-* Logic truy cập database trực tiếp.
-* Logic cập nhật nhiều entity nghiệp vụ.
-
----
-
-### Business Layer
-
-Business Layer chịu trách nhiệm thực hiện các nghiệp vụ của hệ thống.
-
-Các service chính có thể gồm:
-
-```text
-AuthService
-UserService
-TripService
-BookingService
-AdminService
-```
-
-#### Trách nhiệm
-
-* Thực hiện business rules.
-* Kiểm tra điều kiện nghiệp vụ.
-* Điều phối nhiều thao tác dữ liệu.
-* Xử lý transaction nghiệp vụ.
-* Gọi Data Access Layer.
-* Phát sinh các lỗi nghiệp vụ phù hợp.
-
-Ví dụ đối với booking:
-
-```text
-BookingService
-    │
-    ├── Kiểm tra user
-    ├── Tìm trip
-    ├── Kiểm tra trạng thái trip
-    ├── Kiểm tra available seats
-    ├── Tạo booking
-    └── Cập nhật available seats
-```
-
-#### Dependency Rule
-
-Business Layer **không import hoặc phụ thuộc trực tiếp vào Web Framework hay Database Library**.
-
-Business logic cần được giữ độc lập với:
-
-* HTTP.
-* Controller.
-* PostgreSQL.
-* JPA implementation.
-* Các chi tiết triển khai của framework.
-
-Điều này giúp business logic dễ kiểm thử và giảm sự phụ thuộc vào công nghệ cụ thể.
-
----
-
-### Data Access Layer
-
-Data Access Layer chịu trách nhiệm giao tiếp với database.
-
-Các repository dự kiến:
-
-```text
-UserRepository
-RoleRepository
-BusOperatorRepository
-VehicleRepository
-LocationRepository
-RouteRepository
-TripRepository
-BookingRepository
-```
-
-#### Trách nhiệm
-
-* Truy vấn dữ liệu.
-* Thêm dữ liệu.
-* Cập nhật dữ liệu.
-* Xóa dữ liệu.
-* Tìm kiếm dữ liệu theo điều kiện.
-* Ánh xạ dữ liệu giữa application và database.
-
-Data Access Layer sử dụng ORM/Data Mapper để thực hiện việc truy cập PostgreSQL.
-
-#### Không nên thực hiện
-
-Data Access Layer không chịu trách nhiệm:
-
-* Xử lý HTTP request.
-* Xác thực người dùng ở mức endpoint.
-* Quyết định các business rules.
-* Xử lý logic giao diện.
-
----
-
-## 3.6. Authentication Architecture
-
-Hệ thống sử dụng cơ chế xác thực dựa trên token.
-
-Luồng xác thực tổng quát:
-
-```text
-┌──────────────┐
-│    Client    │
-└──────┬───────┘
-       │
-       │ Login
-       ▼
-┌──────────────────┐
-│ Auth Controller  │
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│ Authentication   │
-│ Service          │
-└────────┬─────────┘
-         │
-         ▼
-    Verify User
-         │
-         ▼
-   Generate Token
-         │
-         ▼
-       Client
-```
-
-Sau khi đăng nhập, client gửi token trong các request cần xác thực:
-
-```text
-Authorization: Bearer <token>
-```
-
-### Request có xác thực
-
-```text
-Client
-  │
-  │ Authorization: Bearer <token>
-  ▼
-Authentication Filter
-  │
-  ├── Token hợp lệ
-  │       ↓
-  │    Security Context
-  │       ↓
-  │    Controller
-  │
-  └── Token không hợp lệ
-          ↓
-      Unauthorized
-```
-
-Việc xác thực được thực hiện ở **middleware/filter/security layer** thay vì lặp lại logic xác thực trong từng controller.
-
-### Authorization
-
-Sau khi xác thực thành công, hệ thống sử dụng role của người dùng để kiểm soát quyền truy cập.
-
-```text
-USER
- ├── Search trips
- ├── Create booking
- ├── View own bookings
- └── Cancel own booking
-
-ADMIN
- ├── Manage users
- ├── Manage operators
- ├── Manage vehicles
- ├── Manage routes
- ├── Manage trips
- └── Manage bookings
-```
-
-Business Layer vẫn kiểm tra các điều kiện nghiệp vụ liên quan đến quyền sở hữu dữ liệu.
-
-Ví dụ:
-
-```text
-User A
-  ↓
-GET /api/bookings/100
-  ↓
-Kiểm tra booking 100 thuộc User A?
-  ↓
-Có → cho phép
-Không → từ chối
-```
-
----
-
-## 3.7. Deployment Architecture
-
-Trong Pha 1, hệ thống được đóng gói bằng Docker để tạo môi trường triển khai nhất quán.
-
-Kiến trúc triển khai cơ bản:
-
-```text
-┌─────────────────────────┐
-│         Client          │
-│   Web / Postman / ...   │
-└────────────┬────────────┘
-             │
-             │ HTTP
-             ▼
-┌─────────────────────────┐
-│    Spring Boot App      │
-│                         │
-│  REST API               │
-│  Business Logic         │
-│  Data Access            │
-└────────────┬────────────┘
-             │
-             │ JDBC
-             ▼
-┌─────────────────────────┐
-│      PostgreSQL         │
-│                         │
-│     Database            │
-└─────────────────────────┘
-```
-
-Khi sử dụng Docker Compose:
-
-```text
-┌───────────────────────────────────────────┐
-│              Docker Host                  │
-│                                           │
-│  ┌─────────────────┐  ┌────────────────┐  │
-│  │ Backend         │  │ PostgreSQL     │  │
-│  │ Spring Boot     │──│ Database       │  │
-│  │ Container       │  │ Container      │  │
-│  └─────────────────┘  └────────────────┘  │
-│                                           │
-└───────────────────────────────────────────┘
-          ▲
-          │
-          │ HTTP
-          │
-       Client
-```
-
-### Backend Container
-
-Chứa ứng dụng Spring Boot và cung cấp REST API cho client.
-
-### PostgreSQL Container
-
-Chứa cơ sở dữ liệu của hệ thống.
-
-### Docker Compose
-
-Docker Compose được sử dụng để định nghĩa và khởi chạy các service cần thiết cho hệ thống.
-
-Ví dụ:
-
-```text
-docker compose up --build
-```
-
-sẽ khởi chạy môi trường backend và database.
-
-### Deployment Flow
-
-```text
-Source Code
-     ↓
-Build Application
-     ↓
-Build Docker Image
-     ↓
-Start Containers
-     ↓
-Spring Boot Application
-     ↓
-PostgreSQL
-```
-
-Kiến trúc triển khai này phục vụ mục tiêu của Pha 1 là đảm bảo hệ thống có thể được đóng gói và chạy trong môi trường nhất quán. Các cơ chế triển khai nâng cao như CI/CD, load balancing, container orchestration hoặc cloud deployment chưa thuộc phạm vi của Pha 1.
