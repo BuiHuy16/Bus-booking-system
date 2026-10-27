@@ -1,6 +1,6 @@
 # 2. Thiết kế Database
 
-**Hiện trạng repository:** V1–V11 tạo đầy đủ schema Role/User, Operator, Location, Vehicle, Route, Trip, Booking và email verification. V12 chuẩn hóa Location. V13 chuẩn hóa Bus Operator. V14 bảo đảm identity của Route. V15 chuẩn hóa Vehicle và thêm index cho quan hệ Operator–Vehicle–Trip. Flyway migrations là nguồn sự thật của schema; các ghi chú phase cũ phía dưới chỉ có giá trị lịch sử.
+**Hiện trạng repository:** V1–V11 tạo đầy đủ schema Role/User, Operator, Location, Vehicle, Route, Trip, Booking và email verification. V12 chuẩn hóa Location. V13 chuẩn hóa Bus Operator. V14 bảo đảm identity của Route. V15 chuẩn hóa Vehicle và thêm index cho quan hệ Operator–Vehicle–Trip. V16 hoãn bốn index thường của V14–V15 sang Pha 2, giữ nguyên toàn bộ ràng buộc toàn vẹn và UNIQUE index nghiệp vụ; xem [báo cáo rà soát index Pha 1](09-phase-one-index-review.md). Flyway migrations là nguồn sự thật của schema; các ghi chú phase cũ phía dưới chỉ có giá trị lịch sử.
 
 ## 2.1. Tổng quan Database
 
