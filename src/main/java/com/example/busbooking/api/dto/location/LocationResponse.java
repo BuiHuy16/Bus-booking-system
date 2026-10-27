@@ -1,4 +1,4 @@
 package com.example.busbooking.api.dto.location;
 
-public class LocationResponse {
+public record LocationResponse(Long id, String name, String province, String address) {
 }

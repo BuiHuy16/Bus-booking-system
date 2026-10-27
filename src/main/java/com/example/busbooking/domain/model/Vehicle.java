@@ -1,3 +1,14 @@
 package com.example.busbooking.domain.model;
 
-public record Vehicle(Long id, int seatCapacity, com.example.busbooking.domain.enums.VehicleStatus status) {}
+import com.example.busbooking.domain.enums.VehicleStatus;
+import java.time.LocalDateTime;
+
+public record Vehicle(
+        Long id,
+        OperatorSummary operator,
+        String licensePlate,
+        String vehicleType,
+        int seatCapacity,
+        VehicleStatus status,
+        LocalDateTime createdAt) {
+}

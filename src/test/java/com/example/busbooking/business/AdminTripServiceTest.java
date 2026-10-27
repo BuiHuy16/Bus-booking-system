@@ -29,9 +29,21 @@ class AdminTripServiceTest {
         return new SaveTripCommand(1L, 2L, departure, departure.plusHours(2), new BigDecimal("150000"));
     }
 
+    Route route(RouteStatus status) {
+        return new Route(1L,
+                new Location(10L, "Origin", "Province", "Address"),
+                new Location(11L, "Destination", "Province", "Address"),
+                120, status);
+    }
+
+    Vehicle vehicle(VehicleStatus status) {
+        return new Vehicle(2L, new OperatorSummary(20L, "Operator"), "51A12345",
+                "SLEEPER", 30, status, LocalDateTime.of(2026, 1, 1, 0, 0));
+    }
+
     void activeReferences() {
-        when(routes.findById(1L)).thenReturn(Optional.of(new Route(1L, RouteStatus.ACTIVE)));
-        when(vehicles.findById(2L)).thenReturn(Optional.of(new Vehicle(2L, 30, VehicleStatus.ACTIVE)));
+        when(routes.findByIdForUpdate(1L)).thenReturn(Optional.of(route(RouteStatus.ACTIVE)));
+        when(vehicles.findByIdForUpdate(2L)).thenReturn(Optional.of(vehicle(VehicleStatus.ACTIVE)));
     }
 
     @Test void createInitializesScheduledTripAndVehicleCapacity() {
@@ -50,22 +62,22 @@ class AdminTripServiceTest {
     }
 
     @Test void createRejectsMissingVehicle() {
-        when(routes.findById(1L)).thenReturn(Optional.of(new Route(1L, RouteStatus.ACTIVE)));
+        when(routes.findByIdForUpdate(1L)).thenReturn(Optional.of(route(RouteStatus.ACTIVE)));
         assertThatThrownBy(() -> service.create(command())).isInstanceOf(ResourceNotFoundException.class);
         verifyNoInteractions(trips);
     }
 
     @Test void createRejectsInactiveRoute() {
-        when(routes.findById(1L)).thenReturn(Optional.of(new Route(1L, RouteStatus.INACTIVE)));
-        when(vehicles.findById(2L)).thenReturn(Optional.of(new Vehicle(2L, 30, VehicleStatus.ACTIVE)));
+        when(routes.findByIdForUpdate(1L)).thenReturn(Optional.of(route(RouteStatus.INACTIVE)));
+        when(vehicles.findByIdForUpdate(2L)).thenReturn(Optional.of(vehicle(VehicleStatus.ACTIVE)));
         assertThatThrownBy(() -> service.create(command())).isInstanceOf(BusinessException.class);
         verifyNoInteractions(trips);
     }
 
     @Test void createRejectsIneligibleVehicles() {
-        when(routes.findById(1L)).thenReturn(Optional.of(new Route(1L, RouteStatus.ACTIVE)));
+        when(routes.findByIdForUpdate(1L)).thenReturn(Optional.of(route(RouteStatus.ACTIVE)));
         for (VehicleStatus status : new VehicleStatus[]{VehicleStatus.INACTIVE, VehicleStatus.MAINTENANCE}) {
-            when(vehicles.findById(2L)).thenReturn(Optional.of(new Vehicle(2L, 30, status)));
+            when(vehicles.findByIdForUpdate(2L)).thenReturn(Optional.of(vehicle(status)));
             assertThatThrownBy(() -> service.create(command())).isInstanceOf(BusinessException.class);
         }
         verifyNoInteractions(trips);

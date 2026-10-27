@@ -23,6 +23,64 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return reply(request, 409, "EMAIL_ALREADY_EXISTS", "Email is already registered", Map.of(), new HttpHeaders());
     }
 
+    @ExceptionHandler(DuplicateLocationException.class)
+    public ResponseEntity<Object> duplicateLocation(WebRequest request) {
+        return reply(request, 409, "LOCATION_ALREADY_EXISTS", "Location already exists", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(DuplicateOperatorException.class)
+    public ResponseEntity<Object> duplicateOperator(WebRequest request) {
+        return reply(request, 409, "OPERATOR_ALREADY_EXISTS", "Operator name or email already exists", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(OperatorInUseException.class)
+    public ResponseEntity<Object> operatorInUse(WebRequest request) {
+        return reply(request, 409, "OPERATOR_IN_USE", "Operator still has operational vehicles or trips", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(DuplicateRouteException.class)
+    public ResponseEntity<Object> duplicateRoute(WebRequest request) {
+        return reply(request, 409, "ROUTE_ALREADY_EXISTS", "Route already exists", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(RouteEndpointsLockedException.class)
+    public ResponseEntity<Object> routeEndpointsLocked(WebRequest request) {
+        return reply(request, 409, "ROUTE_ENDPOINTS_LOCKED",
+                "Route endpoints cannot be changed after the route has trips", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(RouteInUseException.class)
+    public ResponseEntity<Object> routeInUse(WebRequest request) {
+        return reply(request, 409, "ROUTE_IN_USE", "Route still has scheduled or in-progress trips", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(DuplicateVehicleException.class)
+    public ResponseEntity<Object> duplicateVehicle(WebRequest request) {
+        return reply(request, 409, "VEHICLE_ALREADY_EXISTS", "Vehicle license plate already exists", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(VehicleIdentityLockedException.class)
+    public ResponseEntity<Object> vehicleIdentityLocked(WebRequest request) {
+        return reply(request, 409, "VEHICLE_IDENTITY_LOCKED",
+                "Vehicle identity cannot be changed after the vehicle has trips", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(VehicleInUseException.class)
+    public ResponseEntity<Object> vehicleInUse(WebRequest request) {
+        return reply(request, 409, "VEHICLE_IN_USE", "Vehicle still has scheduled or in-progress trips", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(InactiveOperatorException.class)
+    public ResponseEntity<Object> inactiveOperator(WebRequest request) {
+        return reply(request, 409, "OPERATOR_INACTIVE", "Operator must be active for this vehicle state", Map.of(), new HttpHeaders());
+    }
+
+    @ExceptionHandler(InvalidOperatorInputException.class)
+    public ResponseEntity<Object> invalidOperatorInput(InvalidOperatorInputException error, WebRequest request) {
+        return reply(request, 400, "VALIDATION_ERROR", "Request validation failed",
+                Map.of(error.getField(), error.getMessage()), new HttpHeaders());
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Object> unauthorized(WebRequest request) {
         HttpHeaders headers = new HttpHeaders();

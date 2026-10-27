@@ -1,4 +1,4 @@
 package com.example.busbooking.domain.model;
 
-public class Location {
+public record Location(Long id, String name, String province, String address) {
 }
