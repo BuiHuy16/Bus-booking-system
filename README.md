@@ -81,7 +81,7 @@ src/main/java/com/example/busbooking/
    .\mvnw.cmd spring-boot:run
    ```
 
-Khi kết nối database thành công, **Flyway kiểm tra/áp dụng các migration** khi ứng dụng khởi động. Với cấu hình local cổng `8085`, mở [Swagger UI](http://localhost:8085/swagger-ui/index.html) để thử API. Nếu có Docker Compose trong bản bàn giao, xem đúng service, cổng và cách chạy tại [Running Guide](docs/06-running-guide.md); không mặc định backend đã được container hóa.
+Khi kết nối database thành công, **Flyway kiểm tra/áp dụng các migration** khi ứng dụng khởi động. Với cấu hình local cổng `8085`, mở [Swagger UI](http://localhost:8085/swagger-ui/index.html) để thử API. Repository có `compose.yaml` cho PostgreSQL, backend và Mailpit; backend publish cổng `8086`. Xem cổng, bootstrap và hạn chế SMTP của profile `dev` tại [Running Guide](docs/06-running-guide.md).
 
 ## 5. API và kiểm thử
 
@@ -89,7 +89,7 @@ Khi kết nối database thành công, **Flyway kiểm tra/áp dụng các migra
 - **File api json:** [api json file](docs/openapi.json)
 
 - **Kiểm thử tự động:** JUnit/Mockito và integration test; chạy `.\mvnw.cmd test` sau khi cấu hình **database test riêng** như Running Guide.
-- **Load test Pha 1 (Kaggle CPU, Locust):** 20 người dùng ảo, GET Trip đạt khoảng **47,83 RPS** và POST Booking **46,84 RPS**, không có lỗi được ghi nhận trong hai lượt đo. Đây là *baseline thử nghiệm*, không phải giới hạn hiệu năng của hệ thống. Xem [kết quả kiểm thử tải](load-tests/README.md).
+- **Load test Pha 1 (Kaggle CPU, Locust):** tại 20 người dùng ảo, snapshot CSV ghi GET **2.834 request / 48,01 RPS**, POST **2.789 / 47,21 RPS**; console cuối lượt ghi tương ứng **2.864 / 48,05 RPS** và **2.816 / 47,16 RPS**. Cả hai nguồn ghi 0 lỗi; nguyên nhân chênh lệch và mốc thống kê chuẩn **chưa xác minh**. Đây là *baseline thử nghiệm*, không phải giới hạn hiệu năng của hệ thống. Xem [kết quả kiểm thử tải](load-tests/README.md).
 
 ## 6. Tài liệu và bàn giao Pha 2
 

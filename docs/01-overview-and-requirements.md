@@ -84,7 +84,7 @@ Các mã **FR** mô tả khả năng nghiệp vụ, **không tương ứng một
 
 **FR-13 — Xem booking.** `USER` xem danh sách booking của mình và thông tin chi tiết booking được phép truy cập. `ADMIN`/`SUPER_ADMIN` được xem booking theo phạm vi quản trị.
 
-**FR-14 — Hủy booking.** Người có quyền hủy booking hợp lệ; hệ thống cập nhật trạng thái sang `CANCELLED` và hoàn lại số ghế đúng một lần theo quy tắc nghiệp vụ.
+**FR-14 — Hủy booking.** Chủ booking hoặc `ADMIN`/`SUPER_ADMIN` được hủy booking chưa `CANCELLED` khi ghế có thể hoàn mà không vượt capacity xe; cập nhật trạng thái và hoàn ghế trong cùng giao dịch. Hiện chưa có hạn hủy theo giờ khởi hành hoặc trạng thái Trip; hủy lặp trả `400 BUSINESS_ERROR`.
 
 ### 1.4.4. Quản trị danh mục và vận hành
 
@@ -112,10 +112,10 @@ Các mã **FR** mô tả khả năng nghiệp vụ, **không tương ứng một
 | **BR-06** | Nhà xe, phương tiện, tuyến đường và chuyến phải tham chiếu dữ liệu hợp lệ; việc đổi trạng thái hoặc định danh có thể bị từ chối khi dữ liệu đang được sử dụng. |
 | **BR-07** | Tuyến đường không được có điểm đi trùng điểm đến; cặp `(điểm đi, điểm đến)` có hướng phải tuân thủ ràng buộc duy nhất của hệ thống. |
 | **BR-08** | Sức chứa phương tiện phải lớn hơn 0; chuyến xe có tuyến đường, phương tiện, thời gian và giá vé hợp lệ. |
-| **BR-09** | Booking chỉ được tạo khi chuyến đủ điều kiện phục vụ và số vé yêu cầu không vượt số ghế còn trống. |
+| **BR-09** | Booking chỉ được tạo cho Trip tồn tại, trạng thái `SCHEDULED`, quantity > 0 và đủ ghế; hiện chưa kiểm tra thời điểm khởi hành, nên Trip quá giờ nhưng còn `SCHEDULED` vẫn có thể được đặt. |
 | **BR-10** | Tạo booking và cập nhật số ghế phải nhất quán trong cùng giao dịch, kể cả khi có yêu cầu đồng thời. |
 | **BR-11** | Booking lưu `unitPrice` và `totalAmount` tại thời điểm đặt, không tự động đổi theo giá Trip sau đó. |
-| **BR-12** | Hủy booking hợp lệ phải cập nhật trạng thái và hoàn ghế một cách nguyên tử; không được hoàn ghế nhiều lần khi hủy lặp. |
+| **BR-12** | Hủy booking phải có quyền truy cập, booking chưa `CANCELLED` và hoàn ghế không vượt capacity; cập nhật trạng thái/ghế nguyên tử. Hủy lặp trả `400 BUSINESS_ERROR`, không hoàn ghế thêm; chưa có cutoff theo thời gian/trạng thái Trip. |
 | **BR-13** | Hủy Trip ở Pha 1 là hủy mềm; chỉ cho hủy Trip `SCHEDULED` không có booking `CONFIRMED`. Không tự động hoàn tiền hoặc hủy hàng loạt booking. |
 | **BR-14** | Không xóa vật lý nhà xe, địa điểm, phương tiện và tuyến đường qua API quản trị Pha 1. |
 | **BR-15** | Chức năng đăng ký công khai không cho phép tự chỉ định role `ADMIN` hay `SUPER_ADMIN`; API quản lý role không cấp `SUPER_ADMIN`. |

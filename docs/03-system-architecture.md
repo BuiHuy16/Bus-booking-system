@@ -26,7 +26,7 @@ flowchart TB
     EA --> SMTP["SMTP Server / Mailpit (môi trường test)"]
 ```
 
-**Lưu ý:** Sơ đồ trên thể hiện cả luồng tương tác và quan hệ triển khai interface. Các mũi tên `implements` **không** có nghĩa Business phụ thuộc vào lớp adapter.
+**Lưu ý:** Sơ đồ trên thể hiện cả luồng tương tác và quan hệ triển khai interface. Các mũi tên `implements` **không** có nghĩa Business phụ thuộc vào lớp adapter. Nhánh JPA được minh họa; `EmailVerificationRepositoryAdapter` và `RoleManagementRepositoryAdapter` còn dùng `JdbcTemplate` trực tiếp.
 
 ## 3.2. Các thành phần và trách nhiệm
 
@@ -36,7 +36,7 @@ flowchart TB
 | Business | `business/service`, `business/command`, `business/result` | Điều phối use case, kiểm tra quy tắc nghiệp vụ, tạo kết quả độc lập với định dạng HTTP |
 | Outbound Ports | `business/port/repository`, `business/port/security`, `business/port/notification` | Định nghĩa các hợp đồng cần dùng từ hạ tầng |
 | Domain | `domain/model`, `domain/enums`, `domain/exception` | Mô hình nghiệp vụ, trạng thái và ngoại lệ nghiệp vụ |
-| Persistence | `data/adapter`, `data/repository`, `data/entity`, `data/mapper` | Hiện thực repository port, truy cập JPA và chuyển đổi domain ↔ entity |
+| Persistence | `data/adapter`, `data/repository`, `data/entity`, `data/mapper` | Hiện thực repository port bằng JPA/mapping domain ↔ entity; OTP và quản lý role còn dùng `JdbcTemplate` |
 | Security | `security`, `security/ratelimit` | Xác thực JWT, mã hóa mật khẩu, HMAC OTP, giới hạn tần suất và xử lý lỗi truy cập |
 | Notification | `notification` | Adapter gửi email xác minh qua SMTP |
 | Cross-cutting | `config`, `exception` | Cấu hình ứng dụng, OpenAPI, biểu diễn lỗi HTTP và xử lý exception tập trung |
@@ -66,7 +66,7 @@ Những quy tắc như quyền sở hữu booking, số ghế khả dụng hoặ
 
 Cần phân biệt **luồng gọi lúc chạy** và **phụ thuộc khi biên dịch**:
 
-**Luồng gọi khi xử lý HTTP:**
+**Luồng gọi khi xử lý HTTP:** Sơ đồ minh họa nhánh Spring Data JPA; adapter OTP/role có nhánh JDBC trực tiếp tới PostgreSQL.
 
 ```mermaid
 flowchart TD
@@ -199,7 +199,7 @@ sequenceDiagram
     API-->>Client: JSON + HTTP status
 ```
 
-Các điều kiện nghiệp vụ cần được duy trì: chuyến hợp lệ, còn đủ ghế, không vượt sức chứa; khi đặt/hủy vé phải cập nhật số ghế nhất quán. **Chiến lược khóa đồng thời, ranh giới transaction và rollback cụ thể** phải được xác nhận ở implementation/service và các bài integration test; sơ đồ trên không thay thế việc kiểm tra đó.
+`BookingService.create/cancel` và `TripService.create/update/cancel` có `@Transactional`. Tạo Booking khóa Trip bằng `PESSIMISTIC_WRITE`, giảm ghế bằng update có điều kiện không âm rồi lưu Booking; lỗi lưu được rollback cùng giao dịch. Hủy Booking khóa Booking rồi Trip, kiểm tra capacity, hoàn ghế rồi đổi trạng thái. Transaction OTP và đổi role nằm tại adapter JDBC; SMTP được gọi sau khi tài khoản/challenge đã commit. Có integration test cho ghế cuối và rollback; trạng thái pass hiện tại chưa xác minh.
 
 ### Đăng ký và xác thực email
 
@@ -258,7 +258,7 @@ Việc ánh xạ lỗi sang HTTP 400/401/403/404/409 phải căn cứ vào handl
 
 ### Database
 
-Ứng dụng sử dụng **PostgreSQL**; phần `data` sử dụng **Spring Data JPA** và các adapter để giao tiếp với cơ sở dữ liệu. `Flyway` lưu lịch sử thay đổi schema trong `src/main/resources/db/migration/` với các file V1–V16 theo cây source được cung cấp.
+Ứng dụng sử dụng **PostgreSQL**; phần `data` sử dụng **Spring Data JPA** cùng **JdbcTemplate** cho OTP/quản lý role; `email_verifications` không có JPA Entity riêng. `Flyway` lưu lịch sử thay đổi schema trong `src/main/resources/db/migration/` với các file V1–V16 theo cây source được cung cấp.
 
 Tài liệu thiết kế bảng, khóa ngoại, constraint và index: [`02-database-design.md`](02-database-design.md).
 

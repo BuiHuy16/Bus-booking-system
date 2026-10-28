@@ -9,7 +9,7 @@ BusBooking là một ứng dụng backend Java 21/Spring Boot cung cấp REST AP
 - **REST API:** controller, DTO, mapper và validation đầu vào.
 - **Business:** service, command/result và các port (interface).
 - **Domain:** model, enum trạng thái và exception nghiệp vụ.
-- **Persistence:** JPA entity, Spring Data repository, repository adapter và persistence mapper.
+- **Persistence:** JPA entity, Spring Data repository, repository adapter và persistence mapper; adapter OTP/quản lý role còn dùng `JdbcTemplate`.
 - **Security/Notification:** JWT, BCrypt, HMAC cho OTP, xác thực email qua SMTP, giới hạn tần suất request.
 - **Cross-cutting:** cấu hình bean/OpenAPI, xử lý lỗi HTTP, Flyway migration và test.
 
@@ -134,7 +134,7 @@ Tầng dữ liệu tách bốn nhiệm vụ:
 |---|---|---|
 | `data/entity` | Ánh xạ bảng PostgreSQL qua JPA | `BookingEntity`, `TripEntity`, `OperatorEntity`, `UserEntity` |
 | `data/repository` | Interface truy cập JPA | `SpringDataBookingRepository`, `SpringDataTripRepository` |
-| `data/adapter` | Hiện thực business repository port | `BookingRepositoryAdapter`, `TripRepositoryAdapter`, `BusOperatorRepositoryAdapter` |
+| `data/adapter` | Hiện thực business repository port bằng JPA hoặc JDBC | `BookingRepositoryAdapter`, `TripRepositoryAdapter`, `BusOperatorRepositoryAdapter`; `EmailVerificationRepositoryAdapter`/`RoleManagementRepositoryAdapter` dùng `JdbcTemplate` |
 | `data/mapper` | Chuyển đổi domain ↔ persistence entity | `BookingPersistenceMapper`, `TripPersistenceMapper`, `OperatorPersistenceMapper` |
 
 Ví dụ đường đi của dữ liệu đặt vé:
@@ -162,7 +162,7 @@ flowchart TD
 
 **Tên đáng lưu ý:** Port nghiệp vụ là `OperatorRepository`, trong khi adapter lưu trữ thực tế mang tên `BusOperatorRepositoryAdapter` và JPA interface là `SpringDataBusOperatorRepository`. Đây là khác biệt cách đặt tên, không phải ba module nghiệp vụ độc lập.
 
-Cấu trúc trên cũng cho phép các use case làm việc với abstraction mà không cần tham chiếu trực tiếp `JpaRepository`. Việc xử lý transaction, khóa dữ liệu và truy vấn cụ thể cần xem implementation tương ứng.
+Cấu trúc trên cho phép các use case làm việc với abstraction mà không tham chiếu trực tiếp `JpaRepository`. Nhánh OTP/role dùng JDBC, không đi qua Spring Data repository; `email_verifications` không có JPA Entity riêng. Transaction OTP/role nằm ở adapter, còn giao dịch thay đổi Booking/Trip nằm ở service; SMTP chạy sau khi tài khoản/challenge đã commit.
 
 ## 5.7. Security và Notification
 
@@ -233,16 +233,16 @@ Ví dụ ở mức thành phần, không thay thế đặc tả API:
 3. `BookingController` tiếp nhận DTO, sau đó chuyển yêu cầu đến `BookingService`.
 4. `BookingService` kiểm tra điều kiện chuyến xe, số lượng vé và quyền nghiệp vụ cần thiết.
 5. Service gọi repository port, adapter sử dụng Spring Data JPA và persistence mapper để đọc/ghi dữ liệu.
-6. Trạng thái booking và số ghế được cập nhật theo quy tắc nghiệp vụ; transaction/locking cụ thể phải kiểm tra trong implementation và integration test.
+6. Trong `@Transactional`, service khóa Trip bằng `PESSIMISTIC_WRITE`, giảm ghế bằng update có điều kiện không âm rồi lưu Booking; lỗi lưu làm rollback cả phần giảm ghế.
 7. Kết quả được ánh xạ thành `BookingResponse` và trả về client.
 
-Đối với các yêu cầu đồng thời, chỉ có transaction chưa đủ để chứng minh an toàn tồn kho ghế. Khi nghiệm thu, cần đối chiếu locking hoặc cơ chế cập nhật có điều kiện và các kiểm thử cạnh tranh vé cuối cùng.
+Đối với các yêu cầu đồng thời, code kết hợp transaction, khóa bi quan và cập nhật ghế có điều kiện. Hủy Booking khóa Booking rồi Trip, kiểm tra capacity, hoàn ghế rồi cập nhật trạng thái trong cùng giao dịch. `TripBookingIntegrationTest` có test cạnh tranh ghế cuối và rollback; kết quả pass hiện tại chưa xác minh.
 
 ## 5.10. Quy tắc phụ thuộc và tổ chức kiểm thử
 
 ### Luồng gọi và hướng phụ thuộc
 
-**Luồng gọi khi chạy:**
+**Luồng gọi khi chạy:** Sơ đồ minh họa nhánh JPA; OTP/quản lý role có nhánh `JdbcTemplate` trực tiếp tại adapter.
 
 ```mermaid
 flowchart TD
