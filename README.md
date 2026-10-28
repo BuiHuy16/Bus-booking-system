@@ -1,10 +1,10 @@
-# Bus Booking System
+# Bus Booking System - Nền tảng đặt vé xe khách trực tuyến
 
-## 1. Định nghĩa bài toán
+## 1. Tổng quan đề tài
 
 ### 1.1. Bối cảnh
 
-Hiện nay, nhu cầu di chuyển bằng xe khách giữa các tỉnh, thành phố ngày càng phổ biến. Người dùng thường phải tìm kiếm thông tin chuyến xe, thời gian khởi hành, giá vé và số ghế còn trống thông qua nhiều nguồn khác nhau. Việc đặt vé theo phương thức thủ công có thể gây mất thời gian và khó quản lý thông tin đặt vé.
+Hiện nay, nhu cầu di chuyển bằng xe khách giữa các tỉnh, thành phố ngày càng phổ biến. Người dùng thường phải tìm kiếm thông tin chuyến xe, thời gian khởi hành, giá vé và số ghế còn trống thông qua nhiều nguồn khác nhau. Việc đặt vé theo phương thức thủ công (phương thức truyền thống) có thể gây mất thời gian và khó quản lý thông tin đặt vé.
 
 Bên cạnh đó, các nhà xe cần quản lý nhiều thông tin liên quan đến phương tiện, tuyến đường, lịch trình và vé đã được đặt. Nếu quản lý bằng phương thức thủ công, việc cập nhật số lượng ghế còn trống và theo dõi các lượt đặt vé có thể dễ xảy ra sai sót.
 
@@ -21,7 +21,7 @@ Hệ thống tập trung giải quyết các vấn đề chính sau:
 * Người dùng cần có khả năng theo dõi các booking đã thực hiện.
 * Quản trị viên cần có khả năng quản lý dữ liệu của hệ thống.
 
-## 2. Chức năng và phạm vi
+## 2. Chức năng và phạm vi pha 1
 
 | Đối tượng | Chức năng chính |
 |---|---|
@@ -31,71 +31,76 @@ Hệ thống tập trung giải quyết các vấn đề chính sau:
 | **SUPER_ADMIN** | Có quyền của ADMIN và được nâng/hạ vai trò `USER` ↔ `ADMIN` |
 
 
-## 3. Công nghệ sử dụng
+## 3. Kiến trúc, công nghệ và tổ chức mã nguồn
 
-* Java 21, Spring Boot
-* Spring Security, JWT
-* PostgreSQL, Spring Data JPA
-* Swagger/OpenAPI
-* JUnit, Mockito
-* Docker, Docker Compose
-
-## 4. Kiến trúc hệ thống
-
-Ứng dụng là **modular monolith**, tổ chức theo **Layered Architecture kết hợp Ports & Adapters**. Business định nghĩa các interface (*ports*); tầng hạ tầng triển khai các adapter để làm việc với database, bảo mật và email.
+BusBooking là **modular monolith**, kết hợp **Layered Architecture** với **Ports và Adapters**. Controller tiếp nhận HTTP; Business xử lý nghiệp vụ qua các interface (*ports*); adapter hiện thực truy cập dữ liệu, bảo mật và gửi email.
 
 ```mermaid
-flowchart TB
-    C[Client / Postman] --> S[Spring Security / JWT]
-    S --> A[API: Controller / DTO]
-    A --> B[Business Service]
-    B --> D[Domain Model]
-    B --> P[Repository / Security / Notification Ports]
-    I[Infrastructure Adapters] -.->|implements| P
-    I --> DB[(PostgreSQL)]
-    I --> E[SMTP / Mailpit]
+flowchart LR
+    Client[Client / Postman] --> Security[Spring Security]
+    Security --> API[Controller / DTO]
+    API --> Business[Business Services]
+    Business --> Domain[Domain]
+    Business --> Ports[Outbound Ports]
+    Adapter[Infrastructure Adapters] -.->|implements| Ports
+    Adapter --> DB[(PostgreSQL)]
+    Adapter --> SMTP[SMTP / Mailpit]
 ```
 
-| Nhóm | Công nghệ |
+```text
+src/main/java/com/example/busbooking/
+├── api/           # Controllers, DTOs, mappers, validation
+├── business/      # Services, commands, ports, results
+├── domain/        # Models, enums, business exceptions
+├── data/          # JPA entities, repositories, adapters, mappers
+├── security/      # JWT, BCrypt, HMAC OTP, rate limiting
+├── notification/  # SMTP email adapter
+├── config/        # Cấu hình ứng dụng
+└── exception/     # Chuẩn hóa lỗi HTTP
+```
+
+| Thành phần | Công nghệ và cách sử dụng |
 |---|---|
-| Backend | Java 21, Spring Boot, Maven Wrapper |
-| Dữ liệu | PostgreSQL, Spring Data JPA, Flyway (V1–V16) |
-| Bảo mật | Spring Security, JWT, BCrypt, email OTP |
-| API & kiểm thử | REST/JSON, Springdoc OpenAPI/Swagger, JUnit, Mockito, Locust |
-| Môi trường | Docker cho các dịch vụ hỗ trợ/đóng gói khi được cấu hình |
+| Backend | **Java 21, Spring Boot**, build/chạy bằng Maven Wrapper |
+| Database | **PostgreSQL + Spring Data JPA**; **Flyway V1–V16** quản lý phiên bản schema |
+| Bảo mật | **Spring Security, JWT, BCrypt**, email OTP; phân quyền theo vai trò |
+| Tích hợp | **SMTP** gửi OTP; **Mailpit** hỗ trợ kiểm tra email khi phát triển |
+| API và kiểm thử | REST/JSON, Springdoc OpenAPI/Swagger, JUnit, Mockito, Locust |
+| Môi trường | Có thể dùng Docker cho PostgreSQL/Mailpit; cách chạy container phụ thuộc cấu hình repository |
 
-## 5. Chạy nhanh trên Windows
+## 4. Cấu hình và chạy nhanh (Windows / PowerShell)
 
-**Yêu cầu:** JDK 21, PostgreSQL đang hoạt động, SMTP thử nghiệm (ví dụ Mailpit) và Maven Wrapper có sẵn trong repository.
+**Cần có:** JDK 21, PostgreSQL, SMTP (có thể dùng Mailpit) và source code chứa `pom.xml`, `mvnw.cmd`.
 
-1. Tạo database và tài khoản PostgreSQL dành cho BusBooking; kiểm tra cổng host đang sử dụng.
-2. Khai báo biến môi trường `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `EMAIL_OTP_SECRET` và các biến `SMTP_*` theo [`06-running-guide.md`](docs/06-running-guide.md). Hai secret phải khác nhau; **Spring Boot không tự nạp file `.env` khi chạy trực tiếp**.
-3. Mở PowerShell tại thư mục gốc và chạy:
+1. Chuẩn bị database PostgreSQL và SMTP; xác nhận địa chỉ/cổng đang sử dụng.
+2. Cấu hình biến môi trường `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `EMAIL_OTP_SECRET` và `SMTP_*` theo [Running Guide](docs/06-running-guide.md). Hai secret phải độc lập; **Spring Boot chạy trực tiếp không tự đọc `.env`**.
+3. Từ thư mục gốc repository, chạy:
 
    ```powershell
    $env:SPRING_PROFILES_ACTIVE = "dev"
    .\mvnw.cmd spring-boot:run
    ```
 
-4. Khi backend đã khởi động, truy cập:
-   - **Swagger UI:** http://localhost:8085/swagger-ui/index.html
-   - **OpenAPI JSON:** http://localhost:8085/v3/api-docs
+Khi kết nối database thành công, **Flyway kiểm tra/áp dụng các migration** khi ứng dụng khởi động. Với cấu hình local cổng `8085`, mở [Swagger UI](http://localhost:8085/swagger-ui/index.html) để thử API. Nếu có Docker Compose trong bản bàn giao, xem đúng service, cổng và cách chạy tại [Running Guide](docs/06-running-guide.md); không mặc định backend đã được container hóa.
 
-**Lưu ý:** Các URL trên dùng cấu hình local cổng `8085`, Swagger phải được bật. Cách chạy bằng Docker Compose (nếu bản bàn giao có cấu hình), thiết lập PostgreSQL/Mailpit, tạo secret và xử lý lỗi được hướng dẫn trong [Running Guide](docs/06-running-guide.md).
+## 5. API và kiểm thử
 
-## 6. API và kiểm thử
+- Tài liệu api đầy đủ: [thiết kế API](docs/04-api-design.md); Swagger cung cấp đặc tả tại `http://localhost:8085/v3/api-docs` khi backend chạy và docs được bật.
+- **File api json:** [api json file](docs/openapi.json)
 
-- Danh sách đầy đủ: [API Design](docs/04-api-design.md).
-- **Kiểm thử:** Unit test và integration test bằng JUnit/Mockito. Chạy `.\mvnw.cmd test` sau khi chuẩn bị **database test riêng** theo Running Guide.
-- **Load test baseline (Kaggle CPU, Locust):** tại 20 người dùng ảo, GET Trip đạt khoảng **47,83 RPS** và POST Booking **46,84 RPS**, không ghi nhận lỗi Locust ở hai lượt đo. Đây là kết quả của môi trường thử nghiệm, **không phải cam kết hiệu năng tối đa**. Xem [báo cáo kiểm thử tải](load-tests/README.md).
+- **Kiểm thử tự động:** JUnit/Mockito và integration test; chạy `.\mvnw.cmd test` sau khi cấu hình **database test riêng** như Running Guide.
+- **Load test Pha 1 (Kaggle CPU, Locust):** 20 người dùng ảo, GET Trip đạt khoảng **47,83 RPS** và POST Booking **46,84 RPS**, không có lỗi được ghi nhận trong hai lượt đo. Đây là *baseline thử nghiệm*, không phải giới hạn hiệu năng của hệ thống. Xem [kết quả kiểm thử tải](load-tests/README.md).
 
-## 7. Tài liệu project
+## 6. Tài liệu và bàn giao Pha 2
 
 | Tài liệu | Nội dung |
 |---|---|
-| [01 — Overview & Requirements](docs/01-overview-and-requirements.md) | Bài toán, đối tượng sử dụng, yêu cầu và nghiệp vụ |
-| [02 — Database Design](docs/02-database-design.md) | ERD, bảng dữ liệu, ràng buộc và migrations |
-| [03 — System Architecture](docs/03-system-architecture.md) | Các tầng, thành phần và hướng phụ thuộc |
-| [04 — API Design](docs/04-api-design.md) | 32 endpoint, request/response và phân quyền |
-| [05 — Source Code Design](docs/05-source-code-design.md) | Package, service, port, adapter và kiểm thử |
-| [06 — Running Guide](docs/06-running-guide.md) | Cài đặt, cấu hình, chạy và khắc phục lỗi |
+| [01 Overview and Requirements](docs/01-overview-and-requirements.md) | Yêu cầu, actors, nghiệp vụ |
+| [02 Database Design](docs/02-database-design.md) | ERD, ràng buộc, Flyway migrations |
+| [03 System Architecture](docs/03-system-architecture.md) | Thành phần, kiến trúc và hướng phụ thuộc |
+| [04 API Design](docs/04-api-design.md) | Các API, phân quyền và hợp đồng |
+| [05 Source Code Design](docs/05-source-code-design.md) | Tổ chức packages, services, ports và adapters |
+| [06 Running Guide](docs/06-running-guide.md) | Cấu hình, khởi chạy, kiểm tra và xử lý lỗi |
+
+
+> **Lưu ý:** Không commit `.env`, mật khẩu, JWT/OTP secret hay dữ liệu cá nhân thật. Khi thay đổi database, tạo migration Flyway mới thay vì sửa migration đã áp dụng.

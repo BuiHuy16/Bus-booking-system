@@ -139,20 +139,25 @@ Tầng dữ liệu tách bốn nhiệm vụ:
 
 Ví dụ đường đi của dữ liệu đặt vé:
 
-```text
-BookingService
-    │ gọi interface
-    ▼
-business.port.repository.BookingRepository
-    ▲ implemented by
-    │
-data.adapter.BookingRepositoryAdapter
-    ├── data.repository.SpringDataBookingRepository
-    └── data.mapper.BookingPersistenceMapper
-             ↕
-       data.entity.BookingEntity
-             ↕
-         PostgreSQL
+```mermaid
+flowchart TD
+    A["BookingService"]
+    B["business.port.repository.BookingRepository"]
+    C["data.adapter.BookingRepositoryAdapter"]
+    D["data.repository.SpringDataBookingRepository"]
+    E["data.mapper.BookingPersistenceMapper"]
+    F["data.entity.BookingEntity"]
+    G[("PostgreSQL")]
+
+    A -->|"Gọi interface"| B
+    C -.->|"implements"| B
+
+    C --> D
+    C --> E
+
+    D --> F
+    E <-->|"Mapping"| F
+    D -->|"Spring Data JPA"| G
 ```
 
 **Tên đáng lưu ý:** Port nghiệp vụ là `OperatorRepository`, trong khi adapter lưu trữ thực tế mang tên `BusOperatorRepositoryAdapter` và JPA interface là `SpringDataBusOperatorRepository`. Đây là khác biệt cách đặt tên, không phải ba module nghiệp vụ độc lập.
@@ -175,12 +180,32 @@ Cấu trúc trên cũng cho phép các use case làm việc với abstraction m�
 
 Luồng tổng quan của request cần JWT:
 
-```text
-Client + Bearer token
-    → Spring Security / JWT Filter
-    → Controller
-    → Business Service (kiểm tra quyền nghiệp vụ/ownership khi cần)
-    → Response
+```mermaid
+flowchart TD
+    A["Client + Bearer Token"]
+    B["Spring Security / JWT Filter"]
+    C{"JWT hợp lệ và đủ quyền truy cập?"}
+    D["Controller"]
+    E["Business Service"]
+    F{"Quyền nghiệp vụ / Ownership hợp lệ?"}
+    G["Xử lý nghiệp vụ"]
+    H["HTTP Response"]
+    I["401 Unauthorized / 403 Forbidden"]
+    J["403 Forbidden hoặc lỗi nghiệp vụ phù hợp"]
+    K([Kết thúc])
+
+    A --> B --> C
+
+    C -->|Có| D
+    C -->|Không| I --> K
+
+    D --> E --> F
+
+    F -->|Có hoặc không cần kiểm tra| G
+    F -->|Không| J
+
+    G --> H --> K
+    J --> K
 ```
 
 Với đăng ký/xác minh email, hệ thống còn có `EmailVerificationService`, `VerificationCodeProvider` và `EmailVerificationSender`. `notification/SmtpEmailVerificationSender` gửi email thông qua SMTP; Mailpit có thể dùng làm SMTP thử nghiệm. **OTP và JWT là hai cơ chế khác nhau**: OTP xác minh email, còn JWT xác thực các request sau đăng nhập.
@@ -219,19 +244,54 @@ Ví dụ ở mức thành phần, không thay thế đặc tả API:
 
 **Luồng gọi khi chạy:**
 
-```text
-HTTP → Security Filter → Controller → Business Service
-     → Repository Port → Data Adapter → Spring Data JPA → PostgreSQL
+```mermaid
+flowchart TD
+    A["HTTP Request"]
+    B["Security Filter"]
+    C["Controller"]
+    D["Business Service"]
+    E["Repository Port"]
+    F["Data Adapter"]
+    G["Spring Data JPA"]
+    H[("PostgreSQL")]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
 **Hướng phụ thuộc trong thiết kế:**
 
-```text
-api/controller ────────────────→ business/service
-business/service ─────────────→ business/port + domain
-data/adapter ─────────────────→ business/port + domain
-data/repository ──────────────→ Spring Data JPA
-security/notification adapters → business/port tương ứng
+```mermaid
+flowchart TD
+    API["api/controller"]
+    SERVICE["business/service"]
+    PORT["business/port"]
+    DOMAIN["domain"]
+
+    ADAPTER["data/adapter"]
+    REPO["data/repository"]
+    JPA["Spring Data JPA"]
+
+    SECURITY["security adapters"]
+    NOTIFICATION["notification adapters"]
+
+    API --> SERVICE
+    SERVICE --> PORT
+    SERVICE --> DOMAIN
+
+    ADAPTER -.->|"implements"| PORT
+    ADAPTER --> DOMAIN
+    ADAPTER --> REPO
+
+    REPO --> JPA
+
+    SECURITY -.->|"implements"| PORT
+    NOTIFICATION -.->|"implements"| PORT
 ```
 
 Mũi tên adapter trỏ đến port biểu thị **dependency inversion**: Business định nghĩa hợp đồng; hạ tầng phụ thuộc vào hợp đồng để triển khai. Không nên diễn giải sơ đồ gọi lúc chạy thành việc Business import trực tiếp lớp `data/adapter`.

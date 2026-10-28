@@ -1,6 +1,6 @@
 # 02. Thiết kế Database
 
-## 1. Tổng quan
+## 2.1. Tổng quan
 
 BusBooking sử dụng **PostgreSQL** để quản lý tài khoản, phân quyền, xác thực email, nhà xe, địa điểm, phương tiện, tuyến đường, chuyến xe và đặt vé. **Flyway** quản lý thay đổi schema thông qua các migration SQL trong source code.
 
@@ -20,7 +20,7 @@ Thiết kế tách các thực thể theo trách nhiệm để hạn chế trùn
 
 > **Nguồn chính xác của schema:** Các file Flyway migration trong `src/main/resources/db/migration/` (hoặc đường dẫn cấu hình thực tế). Tài liệu này mô tả mô hình theo bản tài liệu đã cung cấp; trước khi chốt Pha 1 cần so khớp với các migration cuối cùng, đặc biệt các thay đổi sau V15.
 
-## 2. Sơ đồ quan hệ (ERD)
+## 2.2. Sơ đồ quan hệ (ERD)
 
 ```mermaid
 erDiagram
@@ -116,9 +116,9 @@ erDiagram
 
 Quan hệ `USERS` – `EMAIL_VERIFICATIONS` là **1 – 0..1**: mỗi người dùng có nhiều nhất một challenge OTP đang được lưu. Các quan hệ một–nhiều khác được thể hiện bằng khóa ngoại ở bảng phía nhiều.
 
-## 3. Các bảng và trường chính
+## 2.3. Các bảng và trường chính
 
-### 3.1. Tài khoản và xác thực
+### 2.3.1. Tài khoản và xác thực
 
 **`roles`**
 
@@ -153,7 +153,7 @@ Quan hệ `USERS` – `EMAIL_VERIFICATIONS` là **1 – 0..1**: mỗi người d
 
 Khi xác minh thành công, challenge được xóa và `users.email_verified` được chuyển thành `TRUE` trong cùng giao dịch. Khi gửi lại OTP, challenge được thay mới.
 
-### 3.2. Nhà xe, địa điểm và phương tiện
+### 2.3.2. Nhà xe, địa điểm và phương tiện
 
 **`bus_operators`**
 
@@ -188,7 +188,7 @@ Khi xác minh thành công, challenge được xóa và `users.email_verified` �
 | `status` | VARCHAR(20) | Trạng thái |
 | `created_at` | TIMESTAMP | Thời điểm tạo |
 
-### 3.3. Tuyến, chuyến và đặt vé
+### 2.3.3. Tuyến, chuyến và đặt vé
 
 **`routes`**
 
@@ -233,7 +233,7 @@ Khi xác minh thành công, challenge được xóa và `users.email_verified` �
 
 Giữ `unit_price` và `total_amount` trong booking để không làm thay đổi lịch sử thanh toán khi giá của chuyến thay đổi.
 
-## 4. Ràng buộc toàn vẹn
+## 2.4. Ràng buộc toàn vẹn
 
 | Nhóm | Quy tắc đáng chú ý |
 |---|---|
@@ -248,7 +248,7 @@ Giữ `unit_price` và `total_amount` trong booking để không làm thay đổ
 
 Các quy tắc vượt phạm vi CHECK/FK do **tầng nghiệp vụ và transaction** xử lý, gồm: không bán vượt số ghế trống; không đặt vé cho chuyến không hợp lệ; hoàn ghế khi hủy booking hợp lệ; giới hạn thời gian và số lần nhập sai OTP; chỉ chủ sở hữu hoặc người có thẩm quyền được thao tác với booking.
 
-## 5. Index và tra cứu
+## 2.5. Index và tra cứu
 
 Các khóa `PRIMARY KEY`/`UNIQUE` tạo hoặc dựa trên index tương ứng trong PostgreSQL. Nhóm truy vấn đáng quan tâm khi đánh giá hiệu năng gồm:
 
@@ -263,7 +263,7 @@ Các khóa `PRIMARY KEY`/`UNIQUE` tạo hoặc dựa trên index tương ứng t
 
 **Phân biệt thiết kế với triển khai:** Các index ngoài PK/UNIQUE cần đối chiếu file migration hoặc kết quả `pg_indexes` trước khi khẳng định chúng **đã được tạo**. Composite index `(route_id, departure_time)` chỉ là một lựa chọn tối ưu truy vấn nếu chưa có migration tương ứng; không nên trình bày như index đang tồn tại.
 
-## 6. Migration và vận hành schema
+## 2.6. Migration và vận hành schema
 
 Schema được quản lý bởi **Flyway** khi ứng dụng khởi động. Theo tài liệu hiện có, các mốc thay đổi đáng chú ý là:
 
@@ -278,4 +278,3 @@ Schema được quản lý bởi **Flyway** khi ứng dụng khởi động. The
 
 Không sửa nội dung migration đã áp dụng trên database đang sử dụng. Nếu cần thay đổi schema, tạo migration mới và kiểm tra tương thích với dữ liệu cũ.
 
-> **Cần xác nhận trước khi phát hành:** Tài liệu được cung cấp có đoạn lịch sử chỉ nói tới V1–V13 và đoạn bổ sung tới V15. Hãy liệt kê migration trong repository hiện tại (nếu đã có V16 hoặc cao hơn, bổ sung thay đổi thực tế), rồi kiểm tra kiểu dữ liệu, tên constraint/index và các cột với PostgreSQL. Không sử dụng ghi chú “ngày 1”, “nhánh auth” hoặc “phase 4” làm mô tả hiện trạng hệ thống.

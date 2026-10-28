@@ -1,8 +1,5 @@
 # 4. Thiết kế API
 
-> **Phạm vi chốt tài liệu:** **32 REST API đã triển khai** theo danh sách được nhóm xác nhận và tài liệu/source tree cung cấp đến ngày 28/10/2026. Đây là tài liệu tóm tắt hợp đồng API, không phải nhật ký phát triển. **OpenAPI sinh từ ứng dụng đang chạy là nguồn đối chiếu cuối cùng** cho path, schema và status code.
->
-> **Không tính vào 32 API:** `GET /api/admin/users` và `PUT /api/admin/users/{userId}/status` (chưa thuộc bản triển khai đã xác nhận).
 
 ## 4.1. Quy ước chung
 
@@ -19,7 +16,7 @@
 
 Các mã HTTP thường gặp: `200` (đọc/cập nhật/hủy mềm thành công), `201` (tạo), `202` (tiếp nhận yêu cầu), `204` (thành công không body), `400` (đầu vào không hợp lệ), `401` (chưa xác thực), `403` (không đủ quyền), `404` (không tìm thấy), `409` (xung đột nghiệp vụ), `429` (vượt giới hạn tần suất), `503` (dịch vụ email không khả dụng). Mã và body cụ thể phải theo OpenAPI/implementation từng endpoint.
 
-## 4.2. Danh sách 32 API đã triển khai
+## 4.2. Danh sách các API đã triển khai
 
 | # | Method | Endpoint | Nhóm | Quyền truy cập |
 |---:|---|---|---|---|
@@ -290,10 +287,4 @@ Swagger UI và JSON OpenAPI phụ thuộc profile/cấu hình đang bật. Với
 
 - Swagger UI: `http://localhost:8085/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8085/v3/api-docs`
-
-**Xuất OpenAPI thành file:**
-
-```powershell
-Invoke-WebRequest -Uri "http://localhost:8085/v3/api-docs" -OutFile "docs/openapi.json"
-```
 

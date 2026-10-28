@@ -146,13 +146,25 @@ Trường hợp gửi email thất bại, tài khoản có thể đã được t
 
 ### BF-02 — Tìm kiếm chuyến xe
 
-```text
-Khách truy cập
-  → Lấy/chọn điểm đi, điểm đến
-  → Chọn ngày khởi hành
-  → Gửi yêu cầu tìm kiếm
-  → Xem danh sách chuyến phù hợp
-  → Xem chi tiết chuyến nếu cần
+```mermaid
+flowchart TD
+    A([Khách truy cập])
+    B["Lấy/chọn điểm đi, điểm đến"]
+    C["Chọn ngày khởi hành"]
+    D["Gửi yêu cầu tìm kiếm"]
+    E["Xem danh sách chuyến phù hợp"]
+    F{"Muốn xem chi tiết chuyến?"}
+    G["Xem chi tiết chuyến"]
+    H([Kết thúc])
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F -->|Có| G
+    F -->|Không| H
+    G --> H
 ```
 
 ### BF-03 — Tạo booking
@@ -173,24 +185,68 @@ Việc kiểm tra/cập nhật ghế phải xử lý được các yêu cầu đ
 
 ### BF-04 — Hủy booking
 
-```text
-USER / ADMIN / SUPER_ADMIN
-  → Chọn booking
-  → Kiểm tra JWT, quyền sở hữu hoặc quyền quản trị
-  → Kiểm tra trạng thái/điều kiện hủy
-  → Nếu hợp lệ: chuyển sang CANCELLED và hoàn ghế trong cùng giao dịch
-  → Trả kết quả; không hoàn ghế lần thứ hai khi hủy lặp
+```mermaid
+flowchart TD
+    A([USER / ADMIN / SUPER_ADMIN])
+    B["Chọn booking cần hủy"]
+    C["Kiểm tra JWT và quyền truy cập"]
+    D{"Có quyền hủy booking?"}
+    E{"Booking đủ điều kiện hủy?"}
+    F["Chuyển trạng thái sang CANCELLED"]
+    G["Hoàn lại số ghế trong cùng giao dịch"]
+    H["Trả kết quả hủy thành công"]
+    I["Từ chối yêu cầu"]
+    J["Trả kết quả hoặc lỗi phù hợp"]
+    K([Kết thúc])
+
+    A --> B --> C --> D
+    D -->|Có| E
+    D -->|Không| I
+    E -->|Có| F --> G --> H --> K
+    E -->|Không| J --> K
+    I --> K
 ```
 
 ### BF-05 — Quản trị chuyến xe
 
-```text
-ADMIN / SUPER_ADMIN
-  → Chọn tạo mới, cập nhật hoặc hủy Trip
-  → Kiểm tra Route/Vehicle/trạng thái/thời gian/giá vé
-  → Tạo hoặc cập nhật Trip nếu hợp lệ
-  → Nếu hủy: chỉ soft-cancel Trip thỏa điều kiện Pha 1
-  → Trả TripResponse hoặc lỗi nghiệp vụ tương ứng
+```mermaid
+flowchart TD
+    A([ADMIN / SUPER_ADMIN])
+    B["Chọn chức năng quản lý Trip"]
+    C{"Thao tác?"}
+
+    D["Tạo chuyến xe mới"]
+    E["Cập nhật chuyến xe"]
+    F["Yêu cầu hủy chuyến xe"]
+
+    G["Kiểm tra Route, Vehicle, trạng thái, thời gian và giá vé"]
+    H{"Dữ liệu và điều kiện hợp lệ?"}
+    I["Tạo hoặc cập nhật Trip"]
+
+    J["Kiểm tra điều kiện soft-cancel Pha 1"]
+    L{"Được phép hủy?"}
+    M["Chuyển Trip sang CANCELLED"]
+
+    N["Trả TripResponse"]
+    O["Trả lỗi nghiệp vụ"]
+    P([Kết thúc])
+
+    A --> B --> C
+
+    C -->|Tạo mới| D --> G
+    C -->|Cập nhật| E --> G
+    C -->|Hủy| F --> J
+
+    G --> H
+    H -->|Có| I --> N
+    H -->|Không| O
+
+    J --> L
+    L -->|Có| M --> N
+    L -->|Không| O
+
+    N --> P
+    O --> P
 ```
 
 ## 1.7. Yêu cầu chất lượng và giới hạn Pha 1

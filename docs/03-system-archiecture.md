@@ -68,20 +68,53 @@ Cần phân biệt **luồng gọi lúc chạy** và **phụ thuộc khi biên d
 
 **Luồng gọi khi xử lý HTTP:**
 
-```text
-Client → Security Filters → Controller → Business Service
-       → Repository Port → Persistence Adapter → Spring Data JPA → PostgreSQL
+```mermaid
+flowchart TD
+    A["Client"]
+    B["Security Filters"]
+    C["Controller"]
+    D["Business Service"]
+    E["Repository Port"]
+    F["Persistence Adapter"]
+    G["Spring Data JPA"]
+    H[("PostgreSQL")]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
 ```
 
 **Phụ thuộc ở mã nguồn:**
 
-```text
-api/controller  ────────→ business/service
-business/service ───────→ business/port + domain
+```mermaid
+flowchart TD
+    API["api/controller"]
+    SERVICE["business/service"]
+    PORT["business/port"]
+    DOMAIN["domain"]
 
-data/adapter  ─────────→ business/port + domain
-data/repository ────────→ Spring Data JPA
-security, notification → business/port (với các adapter tương ứng)
+    ADAPTER["data/adapter"]
+    REPO["data/repository"]
+    JPA["Spring Data JPA"]
+
+    SECURITY["security"]
+    NOTIFICATION["notification"]
+
+    API --> SERVICE
+    SERVICE --> PORT
+    SERVICE --> DOMAIN
+
+    ADAPTER -->|implements| PORT
+    ADAPTER --> DOMAIN
+    ADAPTER --> REPO
+    REPO --> JPA
+
+    SECURITY -.->|implements relevant ports| PORT
+    NOTIFICATION -.->|implements notification port| PORT
 ```
 
 Ví dụ có thể đối chiếu trong source:
@@ -141,7 +174,7 @@ Sơ đồ nhóm các controller/service để dễ nhìn, **không biểu diễn
 
 ## 3.5. Luồng xử lý nghiệp vụ điển hình
 
-### Đặt vé — `POST /api/bookings`
+### Đặt vé: `POST /api/bookings`
 
 ```mermaid
 sequenceDiagram
@@ -188,11 +221,29 @@ Cây source có `BootstrapSuperAdminService` và `RoleManagementService`; chi ti
 - `security/ratelimit` gồm `AuthRateLimitFilter`, `AuthRequestRateLimiter` và cấu hình liên quan đến giới hạn request xác thực.
 - Role nghiệp vụ được biểu diễn bằng `RoleName`; code hiện có các thành phần quản lý role/SUPER_ADMIN. Quyền truy cập cụ thể phải lấy từ `SecurityConfig` và service tương ứng.
 
-```text
-Client → HTTP Filters / JWT → Controller → Business Service
-                 │                              │
-                 └── 401 / 403 khi phù hợp      └── kiểm tra quyền sở hữu,
-                                                  trạng thái, quy tắc nghiệp vụ
+```mermaid
+flowchart TD
+    A(["Client"])
+    B["HTTP Filters / JWT"]
+    C{"Xác thực và phân quyền hợp lệ?"}
+    D["Controller"]
+    E["Business Service"]
+    F{"Đáp ứng quy tắc nghiệp vụ?"}
+    G["Xử lý nghiệp vụ"]
+    H["Trả HTTP Response"]
+    I["401 Unauthorized / 403 Forbidden"]
+    J["Trả lỗi nghiệp vụ phù hợp"]
+    K(["Kết thúc"])
+
+    A --> B --> C
+
+    C -->|Có| D
+    C -->|Không| I --> K
+
+    D --> E --> F
+
+    F -->|Có| G --> H --> K
+    F -->|Không| J --> K
 ```
 
 ### Exception handling
