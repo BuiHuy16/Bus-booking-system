@@ -104,5 +104,3 @@ Khi kết nối database thành công, **Flyway kiểm tra/áp dụng các migra
 | [05 Source Code Design](docs/05-source-code-design.md) | Tổ chức packages, services, ports và adapters |
 | [06 Running Guide](docs/06-running-guide.md) | Cấu hình, khởi chạy, kiểm tra và xử lý lỗi |
 
-
-> **Lưu ý:** Không commit `.env`, mật khẩu, JWT/OTP secret hay dữ liệu cá nhân thật. Khi thay đổi database, tạo migration Flyway mới thay vì sửa migration đã áp dụng.
