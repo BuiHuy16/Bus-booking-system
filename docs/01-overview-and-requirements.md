@@ -124,7 +124,7 @@ Các mã **FR** mô tả khả năng nghiệp vụ, **không tương ứng một
 
 ## 1.6. Luồng nghiệp vụ chính (Business Flows)
 
-### BF-01 — Đăng ký, xác minh email và đăng nhập
+### BF-01 Đăng ký, xác minh email và đăng nhập
 
 ```mermaid
 flowchart TD
@@ -144,7 +144,7 @@ flowchart TD
 
 Trường hợp gửi email thất bại, tài khoản có thể đã được tạo nhưng chưa xác minh; người dùng sử dụng chức năng gửi lại OTP theo quy tắc giới hạn tần suất.
 
-### BF-02 — Tìm kiếm chuyến xe
+### BF-02 Tìm kiếm chuyến xe
 
 ```mermaid
 flowchart TD
@@ -167,7 +167,7 @@ flowchart TD
     G --> H
 ```
 
-### BF-03 — Tạo booking
+### BF-03 Tạo booking
 
 ```mermaid
 flowchart TD
@@ -183,7 +183,7 @@ flowchart TD
 
 Việc kiểm tra/cập nhật ghế phải xử lý được các yêu cầu đặt đồng thời; chỉ kiểm tra số ghế một lần trước khi lưu là chưa đủ để bảo đảm an toàn cạnh tranh.
 
-### BF-04 — Hủy booking
+### BF-04 Hủy booking
 
 ```mermaid
 flowchart TD
@@ -207,7 +207,7 @@ flowchart TD
     I --> K
 ```
 
-### BF-05 — Quản trị chuyến xe
+### BF-05 Quản trị chuyến xe
 
 ```mermaid
 flowchart TD
